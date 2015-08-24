@@ -9,6 +9,8 @@
     "globals"
   ],
   "keywords": [
+    "firebase",
+    "angular",
     "angularfire",
     "resource"
   ],

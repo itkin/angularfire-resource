@@ -19,7 +19,7 @@ angular.module('angularfire-resource')
     _setInverseAssociation: (resource) ->
       resource['$set' + @$$options.inverseOf.camelize(true)].call(resource, @$parentRecord)
 
-    $next: (pageSize)->
+    $next: (pageSize) ->
       if @$ref().scroll
         @$ref().scroll.next(pageSize)
       else

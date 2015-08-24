@@ -9,7 +9,7 @@ angular.module('angularfire-resource')
       constructor: (ref) ->
         return $firebaseObject.call this, ref
 
-      @_assoc = new AssociationFactory(Resource)
+      @_assoc: new AssociationFactory(Resource)
 
       @$name: resourceOptions.name or resourceRef.key().replace(/s$/,'')
 
