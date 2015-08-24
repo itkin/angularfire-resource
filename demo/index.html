@@ -1,0 +1,25 @@
+<html>
+    <head>
+        <script type="text/javascript" src="../bower_components/firebase/firebase.js"></script>
+        <script type="text/javascript" src="../bower_components/angular/angular.js"></script>
+        <script type="text/javascript" src="../bower_components/angularfire/dist/angularfire.js"></script>
+        <script type="text/javascript" src="../demo/module.js"></script>
+        <script type="text/javascript" src="../demo/utils.js"></script>
+        <script type="text/javascript" src="../demo/FirebaseObject.js"></script>
+        <script type="text/javascript" src="../demo/FirebaseArray.js"></script>
+        <script type="text/javascript" src="../bower_components/firebase-util/dist/firebase-util.js"></script>
+        <script type="text/javascript" src="../dist/angularfire-resource.js"></script>
+        <script type="text/javascript" src="../demo/index.js"></script>
+    </head>
+    <body ng-app="myApp">
+        <div ng-controller="TestController">
+            <h1>raw user</h1>
+            <div>{{rawUser}}</div>
+            <hr/>
+            <h2>Resource user</h2>
+            <div>{{user | json }}</div>
+            <p>user loaded {{userLoaded}}</p>
+            <p ng-repeat="poll in user.$polls()">{{poll }}</p>
+        </div>
+    </body>
+</html>

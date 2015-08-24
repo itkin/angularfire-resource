@@ -1,0 +1,29 @@
+{
+  "name": "angularfire-resource",
+  "version": "0.0.0",
+  "authors": [
+    "itkin <nicolas.papon@webflows.fr>"
+  ],
+  "main": "angularfire-resource.js",
+  "moduleType": [
+    "globals"
+  ],
+  "keywords": [
+    "angularfire",
+    "resource"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "devDependencies": {
+    "angular": "~1.4.4",
+    "firebase": "~2.2.9",
+    "angularfire": "~1.1.2",
+    "firebase-util": "~0.2.5"
+  }
+}
