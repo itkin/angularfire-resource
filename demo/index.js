@@ -31,7 +31,7 @@ angular.module('myApp', ['firebase', 'angularfire-resource'])
     User.hasMany('polls', {className: 'Poll', inverseOf: 'user'}, function(baseRef){
       return new Firebase.util.Scroll(baseRef, '$key', {maxCacheSize: 10});
     });
-    User.hasMany('messages', {className: 'Message' });
+    User.hasMany('messages', {className: 'Message', inverseOf: 'user' });
     User.hasOne('girlfriend', {className: 'User', foreignKey: 'girlfriendId', inverseOf: 'boyfriend'});
     User.hasOne('boyfriend', {className: 'User', foreignKey: 'boyfriendId', inverseOf: 'girlfriend'});
 
@@ -45,11 +45,13 @@ angular.module('myApp', ['firebase', 'angularfire-resource'])
     //});
   })
   .factory('Message', function(fireResource, $firebase) {
-    return fireResource($firebase.child('messages'));
+    var Message = fireResource($firebase.child('messages'));
+    Message.belongsTo('user', {className: 'User', inverseOf: "messages", foreignKey: "userId"});
+    return Message;
   })
   .factory('Poll', function(fireResource, $firebase) {
     Poll = fireResource($firebase.child('polls'));
-    Poll.belongsTo('user', {className: "User", foreignKey: 'userId', inverseOf: 'polls'})
+    Poll.belongsTo('user', {className: "User", foreignKey: 'userId', inverseOf: 'polls'});
     return Poll
   })
   .run(function($window, $rootScope, $firebase, $firebaseObject, $firebaseArray, User, fireCollection, Poll, $q) {

@@ -1,18 +1,23 @@
 
 angular.module('angularfire-resource')
 
-.factory 'fireCollection', ($firebaseArray, $injector, $firebaseUtils, $q, utils) ->
+.factory 'fireCollection', ($firebaseArray, $injector, $firebaseUtils) ->
 
   class Collection
 
-    constructor: (opts, cb) ->
-      @_opts = opts
-      @_parentRecord = @_opts.parentRecord
-      @_targetClass = $injector.get(@_opts.className)
+    constructor: (parentRecord, name, opts, cb) ->
+      @$$options = opts
+      @$$targetClass = $injector.get @$$options.className
 
-      ref = @_parentRecord.$ref().child(@_opts.name)
+      @$parentRecord = parentRecord
+      @$name = name
+
+      ref = @$parentRecord.$ref().child(@$name) if @$parentRecord
       ref = cb(ref) if cb?
       return $firebaseArray.call this, ref
+
+    _setInverseAssociation: (resource) ->
+      resource['$set' + @$$options.inverseOf.camelize(true)].call(resource, @$parentRecord)
 
     $next: (pageSize)->
       if @$ref().scroll
@@ -20,10 +25,9 @@ angular.module('angularfire-resource')
       else
         false
 
-
     # delegate to the parent klass constructor to create item and then add it to the collection
     $create: (data)->
-      @_targetClass.$create(data).then (resource) =>
+      @$$targetClass.$create(data).then (resource) =>
         @$add(resource)
 
     # We do not use $save to save a $$notify cb
@@ -36,21 +40,17 @@ angular.module('angularfire-resource')
         def.promise.then =>
           @_setInverseAssociation(resource)
 
-
-    _setInverseAssociation: (resource) ->
-      resource[utils.toCamelCase('$set-' + @_opts.inverseOf)].call(resource, @_parentRecord)
-
     # retrieve the associated resource
     $$added: (snap) ->
       result = $firebaseArray::$$added.apply(this, arguments)
       if result
-        @_targetClass.$find(snap.key()).$loaded()
+        @$$targetClass.$find(snap.key()).$loaded()
       else
         result
 
     $destroy: ->
       item.$destroy() for item in @$list
-      $firebaseArray.prototype.$destroy.apply(this, arguments)
+      $firebaseArray::$destroy.apply(this, arguments)
 
     $$notify: ->
       console.log 'collection', arguments
