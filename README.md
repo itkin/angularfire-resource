@@ -1,7 +1,7 @@
 # angularfire-resource
 Resource factories built on top of AngularFire
 
-> This library is under active development, API subject to change without notice
+> This library is under active development and actually not production ready
 
 ## Purpose
 
