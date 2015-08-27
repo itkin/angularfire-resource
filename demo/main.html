@@ -1,0 +1,29 @@
+<nav class="navbar navbar-inverse navbar-static-top">
+  <div class="container-fluid">
+    <div class="navbar-header">
+      <a class="navbar-brand" href="#">AngularFire Resource Chat Demo</a>
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar-collapse" aria-expanded="false">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+    </div>
+    <div class="collapse navbar-collapse" id="navbar-collapse">
+      <form class="navbar-form navbar-right" id="current-user-form">
+        <div class="input-group">
+          <input type="text" class="form-control" ng-model-options="{debounce: 200}" ng-model="$currentUser.name"/>
+          <span class="input-group-btn">
+            <a href="#" class="btn btn-danger" ng-click="logout()">logout</a>
+          </span>
+        </div>
+      </form>
+    </div>
+  </div>
+</nav>
+<div class="container-fluid">
+  <ui-view/>
+  <footer>
+    <p>&copy; Company 2014</p>
+  </footer>
+</div>

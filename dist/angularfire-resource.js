@@ -21,10 +21,10 @@ String.prototype.camelize = function(firstUp) {
 
 angular.module('angularfire-resource', []);
 
-angular.module('angularfire-resource').factory('AssociationFactory', function($injector, $firebaseUtils) {
+angular.module('angularfire-resource').factory('AssociationFactory', function($injector, $firebaseUtils, AssociationCollection) {
   var AssociationsFactory;
   return AssociationsFactory = (function() {
-    var ensure_options, privateKey, publicKey, setAttrIfDifferent, throwError;
+    var ensure_options, privateKey, publicKey, throwError;
 
     publicKey = function(name) {
       return '$' + name;
@@ -32,20 +32,6 @@ angular.module('angularfire-resource').factory('AssociationFactory', function($i
 
     privateKey = function(name) {
       return '$$' + name;
-    };
-
-    setAttrIfDifferent = function(attr, value, cb) {
-      var def;
-      if (this[attr] === value) {
-        return $firebaseUtils.resolve();
-      } else {
-        def = $firebaseUtils.defer();
-        this.$ref().child(attr).set(value, $firebaseUtils.makeNodeResolver(def));
-        if (cb) {
-          def = def.promise.then(cb);
-        }
-        return def;
-      }
     };
 
     throwError = function(Resource, type, name, key) {
@@ -82,7 +68,8 @@ angular.module('angularfire-resource').factory('AssociationFactory', function($i
 
     AssociationsFactory.prototype.create = function(type, name, opts, cb) {
       this._addToMap(type, name, opts);
-      return this['create' + type.camelize(true)](name, opts, cb);
+      this['create' + type.camelize(true)](name, opts, cb);
+      return this.Resource;
     };
 
     AssociationsFactory.prototype.inverseOf = function(name) {
@@ -99,57 +86,102 @@ angular.module('angularfire-resource').factory('AssociationFactory', function($i
       return assoc;
     };
 
+    AssociationsFactory.prototype.get = function(name) {
+      return this.map[name];
+    };
+
+    AssociationsFactory.prototype._ResourceAdd = function(name, cb) {
+      return this.Resource.prototype[publicKey(name)] = cb;
+    };
+
     AssociationsFactory.prototype.createHasMany = function(name, opts, cb) {
-      return this.Resource.prototype[publicKey(name)] = function(updateRef) {
+      this._ResourceAdd(name, function(updateRef) {
         if (updateRef || !this[privateKey(name)]) {
           if (this[privateKey(name)]) {
             this[privateKey(name)].$destroy();
           }
-          return this[privateKey(name)] = new fireCollection(this, name, opts, updateRef || cb);
+          return this[privateKey(name)] = new AssociationCollection(this, name, opts, updateRef || cb);
         } else {
           return this[privateKey(name)];
+        }
+      });
+      return this.map[name].reverseAssociationSet = function(action, record) {
+        if (action == null) {
+          action = 'add';
+        }
+        if (action === 'add') {
+          return this[publicKey(name)]().$add(record);
+        } else if (action === 'remove') {
+          return this[publicKey(name)]().$remove(record);
         }
       };
     };
 
     AssociationsFactory.prototype.createHasOne = function(name, opts) {
-      this.Resource.prototype[publicKey(name)] = function() {
+      var setIfDifferent;
+      this._ResourceAdd(name, function() {
         var klass, name1;
         klass = $injector.get(opts.className);
-        if (this[opts.foreignKey]) {
-          return this[name1 = privateKey(name)] || (this[name1] = new klass(klass.$ref().child(this[opts.foreignKey])));
+        if (this[opts.foreignKey] != null) {
+          return this[name1 = privateKey(name)] || (this[name1] = klass.$find(this[opts.foreignKey]));
         } else {
           return null;
         }
-      };
-      this.Resource.prototype[publicKey('create' + name.camelize(true))] = function(data) {
+      });
+      setIfDifferent = function(instance, foreignKey, oldResource, newResource) {};
+      this._ResourceAdd("set" + (name.camelize(true)), function(newResource) {
+        var oldResource;
+        oldResource = this[publicKey(name)]();
+        return $firebaseUtils.resolve(oldResource === newResource).then(function(same) {
+          if (same) {
+            return $firebaseUtils.reject();
+          }
+        }).then((function(_this) {
+          return function() {
+            var def;
+            _this[privateKey(name)] = newResource;
+            def = $firebaseUtils.defer();
+            _this.$ref().child(opts.foreignKey).set(newResource ? newResource.$id : null, $firebaseUtils.makeNodeResolver(def));
+            return def.promise;
+          };
+        })(this)).then((function(_this) {
+          return function() {
+            if (oldResource) {
+              return oldResource.constructor._assoc.get(opts.inverseOf).reverseAssociationSet.call(oldResource, 'remove', _this);
+            }
+          };
+        })(this)).then((function(_this) {
+          return function() {
+            if (newResource) {
+              return newResource.constructor._assoc.get(opts.inverseOf).reverseAssociationSet.call(newResource, 'add', _this);
+            }
+          };
+        })(this)).then((function(_this) {
+          return function() {
+            return newResource;
+          };
+        })(this))["catch"](function() {
+          return $firebaseUtils.resolve(newResource);
+        });
+      });
+      this._ResourceAdd("create" + (name.camelize(true)), function(data) {
         var klass;
         klass = $injector.get(opts.className);
         return klass.$create(data).then((function(_this) {
           return function(resource) {
-            return _this[publicKey('set' + name.camelize(true))](resource);
+            return _this['$set' + name.camelize(true)](resource);
           };
         })(this));
-      };
-      return this.Resource.prototype[publicKey('set' + name.camelize(true))] = function(resource) {
-        return setAttrIfDifferent.call(this, opts.foreignKey, resource.$id, (function(_this) {
-          return function() {
-            var klass, reverseSetter;
-            klass = $injector.get(opts.className);
-            reverseSetter = publicKey('set' + klass._assoc.inverseOf(name).name.camelize(true));
-            return resource[reverseSetter](_this);
-          };
-        })(this));
-      };
-    };
-
-    AssociationsFactory.prototype.createBelongsTo = function(name, opts) {
-      return this.Resource.prototype[publicKey("set" + (name.camelize(true)))] = function(resource) {
-        return setAttrIfDifferent.call(this, opts.foreignKey, resource.$id, (function(_this) {
-          return function() {
-            return resource[publicKey(opts.inverseOf)]().$add(_this);
-          };
-        })(this));
+      });
+      return this.map[name].reverseAssociationSet = function(action, record) {
+        if (action == null) {
+          action = 'add';
+        }
+        if (action === 'add') {
+          return this['$set' + name.camelize(true)](record);
+        } else if (action === 'remove') {
+          return this['$set' + name.camelize(true)](null);
+        }
       };
     };
 
@@ -158,10 +190,46 @@ angular.module('angularfire-resource').factory('AssociationFactory', function($i
   })();
 });
 
-angular.module('angularfire-resource').factory('fireCollection', function($firebaseArray, $injector, $firebaseUtils) {
+var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+  hasProp = {}.hasOwnProperty;
+
+angular.module('angularfire-resource').factory('Collection', function($firebaseArray) {
   var Collection;
-  return Collection = (function() {
-    function Collection(parentRecord, name, opts, cb) {
+  Collection = (function() {
+    function Collection(targetClass, ref) {
+      this.$$targetClass = targetClass;
+      ref || (ref = this.$$targetClass.$ref().ref());
+      return $firebaseArray.call(this, ref);
+    }
+
+    Collection.prototype.$$added = function(snap) {
+      var result;
+      result = $firebaseArray.prototype.$$added.apply(this, arguments);
+      if (result) {
+        return this.$$targetClass.$find(snap.key()).$loaded();
+      } else {
+        return result;
+      }
+    };
+
+    Collection.prototype.$next = function(pageSize) {
+      if (this.$ref().scroll) {
+        return this.$ref().scroll.next(pageSize);
+      } else {
+        return false;
+      }
+    };
+
+    return Collection;
+
+  })();
+  return $firebaseArray.$extend(Collection);
+}).factory('AssociationCollection', function($firebaseArray, $injector, Collection, $firebaseUtils) {
+  var AssociationCollection;
+  return AssociationCollection = (function(superClass) {
+    extend(AssociationCollection, superClass);
+
+    function AssociationCollection(parentRecord, name, opts, cb) {
       var ref;
       this.$$options = opts;
       this.$$targetClass = $injector.get(this.$$options.className);
@@ -176,19 +244,20 @@ angular.module('angularfire-resource').factory('fireCollection', function($fireb
       return $firebaseArray.call(this, ref);
     }
 
-    Collection.prototype._setInverseAssociation = function(resource) {
-      return resource['$set' + this.$$options.inverseOf.camelize(true)].call(resource, this.$parentRecord);
-    };
-
-    Collection.prototype.$next = function(pageSize) {
-      if (this.$ref().scroll) {
-        return this.$ref().scroll.next(pageSize);
-      } else {
-        return false;
+    AssociationCollection.prototype._setReverseAssociation = function(action, resource) {
+      var reverseAssoc;
+      if (action == null) {
+        action = 'add';
+      }
+      reverseAssoc = resource.constructor._assoc.get(this.$$options.inverseOf);
+      if (action === 'add') {
+        return reverseAssoc.reverseAssociationSet.call(resource, 'add', this.$parentRecord);
+      } else if (action === 'remove') {
+        return reverseAssoc.reverseAssociationSet.call(resource, 'remove', this.$parentRecord);
       }
     };
 
-    Collection.prototype.$create = function(data) {
+    AssociationCollection.prototype.$create = function(data) {
       return this.$$targetClass.$create(data).then((function(_this) {
         return function(resource) {
           return _this.$add(resource);
@@ -196,67 +265,80 @@ angular.module('angularfire-resource').factory('fireCollection', function($fireb
       })(this));
     };
 
-    Collection.prototype.$add = function(resource) {
+    AssociationCollection.prototype.$add = function(resource) {
       var def;
       if (this.$indexFor(resource.$id) !== -1) {
-        return $firebaseUtils.resolve();
+        return $firebaseUtils.resolve(resource);
       } else {
         def = $firebaseUtils.defer();
         this.$ref().child(resource.$id).set(true, $firebaseUtils.makeNodeResolver(def));
         return def.promise.then((function(_this) {
           return function() {
-            return _this._setInverseAssociation(resource);
+            _this._setReverseAssociation('add', resource);
+            return resource;
           };
         })(this));
       }
     };
 
-    Collection.prototype.$$added = function(snap) {
-      var result;
-      result = $firebaseArray.prototype.$$added.apply(this, arguments);
-      if (result) {
-        return this.$$targetClass.$find(snap.key()).$loaded();
-      } else {
-        return result;
-      }
+    AssociationCollection.prototype.$remove = function(resource) {
+      return $firebaseArray.prototype.$remove.call(this, resource).then((function(_this) {
+        return function() {
+          return _this._setReverseAssociation('remove', resource);
+        };
+      })(this))["catch"]((function(_this) {
+        return function() {
+          return resource;
+        };
+      })(this));
     };
 
-    Collection.prototype.$destroy = function() {
-      var i, item, len, ref1;
-      ref1 = this.$list;
-      for (i = 0, len = ref1.length; i < len; i++) {
-        item = ref1[i];
-        item.$destroy();
-      }
-      return $firebaseArray.prototype.$destroy.apply(this, arguments);
-    };
-
-    Collection.prototype.$$notify = function() {
-      console.log('collection', arguments);
+    AssociationCollection.prototype.$$notify = function() {
+      console.log(this.$parentRecord.constructor.$name.camelize(true), this.$parentRecord.$id, this.$name, arguments);
       return $firebaseArray.prototype.$$notify.apply(this, arguments);
     };
 
-    $firebaseArray.$extend(Collection);
+    return AssociationCollection;
 
-    return Collection;
-
-  })();
+  })(Collection);
 });
 
-angular.module('angularfire-resource').factory('fireResource', function($firebaseObject, $firebaseUtils, fireCollection, AssociationFactory) {
+angular.module('angularfire-resource').factory('FireResource', function($firebaseObject, $firebaseUtils, Collection, AssociationFactory) {
   return function(resourceRef, resourceOptions) {
     var Resource;
     if (resourceOptions == null) {
       resourceOptions = {};
     }
     return Resource = (function() {
+      var map;
+
+      map = {};
+
       function Resource(ref) {
-        return $firebaseObject.call(this, ref);
+        map[ref.key()] = this;
+        $firebaseObject.call(this, ref);
       }
 
       Resource._assoc = new AssociationFactory(Resource);
 
+      Resource.clearMap = function() {
+        var instance, key, results;
+        results = [];
+        for (key in map) {
+          instance = map[key];
+          results.push(instance.$destroy());
+        }
+        return results;
+      };
+
       Resource.$name = resourceOptions.name || resourceRef.key().replace(/s$/, '');
+
+      Resource.$query = function(ref) {
+        if (typeof ref === 'function') {
+          ref = ref(this.$ref());
+        }
+        return new Collection(Resource, ref);
+      };
 
       Resource.$ref = function() {
         return resourceRef;
@@ -273,7 +355,11 @@ angular.module('angularfire-resource').factory('fireResource', function($firebas
       };
 
       Resource.$find = function(key) {
-        return new Resource(Resource.$ref().child(key));
+        if (map[key]) {
+          return map[key];
+        } else {
+          return new Resource(Resource.$ref().child(key));
+        }
       };
 
       Resource.hasMany = function(name, opts, cb) {
@@ -290,28 +376,30 @@ angular.module('angularfire-resource').factory('fireResource', function($firebas
         return this._assoc.create('hasOne', name, opts);
       };
 
-      Resource.belongsTo = function(name, opts) {
-        if (opts == null) {
-          opts = {};
+      Resource.prototype.$destroy = function() {
+        var name, opts, ref1;
+        ref1 = this.constructor._assoc.map;
+        for (name in ref1) {
+          opts = ref1[name];
+          if (this['$$' + name] != null) {
+            this['$$' + name].$destroy();
+          }
         }
-        return this._assoc.create('belongsTo', name, opts);
+        $firebaseObject.prototype.$destroy.apply(this, arguments);
+        return delete map[this.$id];
       };
 
-      Resource.prototype.$destroy = function() {
-        var name, opts;
-        if ((function() {
-          var ref1, results;
-          ref1 = this._assoc.map;
-          results = [];
-          for (name in ref1) {
-            opts = ref1[name];
-            results.push(this['$$' + name] != null);
-          }
-          return results;
-        }).call(this)) {
-          this['$$' + name].$destroy();
-        }
-        return $firebaseObject.prototype.$destroy.apply(this, arguments);
+      Resource.prototype.$update = function(data) {
+        angular.extend(this, data);
+        return this.$save();
+      };
+
+      Resource.prototype.$save = function() {
+        return $firebaseObject.prototype.$save.apply(this, arguments).then((function(_this) {
+          return function() {
+            return _this;
+          };
+        })(this));
       };
 
       Resource.prototype.$$notify = function() {

@@ -1,17 +1,30 @@
 angular.module('angularfire-resource')
 
-.factory 'fireResource', ($firebaseObject, $firebaseUtils, fireCollection, AssociationFactory) ->
+.factory 'FireResource', ($firebaseObject, $firebaseUtils, Collection, AssociationFactory) ->
 
   (resourceRef, resourceOptions={}) ->
 
     class Resource
 
+      map = {}
+
       constructor: (ref) ->
-        return $firebaseObject.call this, ref
+
+        map[ref.key()]= this
+
+        $firebaseObject.call this, ref
 
       @_assoc: new AssociationFactory(Resource)
 
+      @clearMap: ->
+        for key, instance of map
+          instance.$destroy()
+
       @$name: resourceOptions.name or resourceRef.key().replace(/s$/,'')
+
+      @$query: (ref) ->
+        ref = ref(@$ref()) if typeof ref is 'function'
+        new Collection Resource, ref
 
       @$ref: ->
         resourceRef
@@ -25,7 +38,10 @@ angular.module('angularfire-resource')
           new Resource(ref).$loaded()
 
       @$find: (key) ->
-        new Resource(Resource.$ref().child(key))
+        if map[key]
+          map[key]
+        else
+          new Resource Resource.$ref().child(key)
 
       @hasMany: (name, opts={}, cb)->
         @_assoc.create 'hasMany', name, opts, cb
@@ -33,12 +49,20 @@ angular.module('angularfire-resource')
       @hasOne: (name, opts = {}) ->
         @_assoc.create 'hasOne', name, opts
 
-      @belongsTo: (name, opts = {}) ->
-        @_assoc.create 'belongsTo', name, opts
-
       $destroy: ->
-        @['$$' + name].$destroy() if @['$$' + name]? for name, opts of @_assoc.map
+        for name, opts of @constructor._assoc.map
+          @['$$' + name].$destroy() if @['$$' + name]?
         $firebaseObject.prototype.$destroy.apply(this, arguments)
+        delete map[@$id]
+
+      $update: (data) ->
+        angular.extend this, data
+        @$save()
+
+      $save: ->
+        $firebaseObject.prototype.$save.apply(this, arguments).then =>
+          this
+
 
       $$notify: ->
         console.log 'resource', @$id, arguments

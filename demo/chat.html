@@ -1,0 +1,73 @@
+<div class="row">
+  <div class="col-md-12">
+    <div class="page-header">
+      <h1>AngularFire Resource demo<small></small></h1>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-md-8">
+
+
+    <tabset id="conversations">
+      <tab ng-repeat="conversation in $currentUser.$activeConversations()"
+           select="selectConversation(conversation)"
+           active="conversation._displayed">
+
+        <tab-heading>
+          <span ng-repeat="user in conversation.$users() | filter : { $id : '!'+ $currentUser.$id } ">
+            {{user.name}}<span ng-if="$even && !$last">,</span>
+          </span>
+          <span class="glyphicon glyphicon-remove" ng-click="closeConv($event, conversation)"></span>
+        </tab-heading>
+
+        <div class="filler" >
+          <!--<div infinite-scroll='conversation.messages().$next(10)' infinite-scroll-disabled="!conversation._displayed" infinite-scroll-distance='3' infinite-scroll-parent="true">-->
+          <div class="message panel panel-default"
+               ng-repeat="message in conversation.$messages()"
+               ng-class="message.userId == $currentUser.$id ? 'mine' : ''" >
+            <div class="panel-heading">{{message.userId == $currentUser.$id ? 'You' : message.$user().name }} wrote</div>
+            <div class="panel-body">{{message.content}}</div>
+          </div>
+          <!--</div>-->
+        </div>
+
+        <!--<div class="well" ng-if="$currentUser.$activeConversations().length == 0">-->
+          <!--Click on a user link to talk with him-->
+        <!--</div>-->
+
+        <form name="form" id="new-message-form" ng-submit="sendMessage(conversation)">
+          <div class="input-group">
+            <span class="input-group-addon">
+              <span class="glyphicon glyphicon-chevron-right" ng-class="$currentUser.presence ? 'text-primary' : ''"></span>
+            </span>
+            <input type="text" class="form-control" ng-model="newMessage.content" ng-required="true"/>
+            <span class="input-group-btn">
+              <button type="submit" class="btn btn-primary btn-submit">Send</button>
+            </span>
+          </div>
+        </form>
+
+      </tab>
+    </tabset>
+
+    <!--<div class="tab-content" id="messages">-->
+      <!-- -->
+    <!--</div>-->
+
+
+
+  </div>
+  <div class="col-md-4">
+    <h2>Users</h2>
+    <div id="users-list" fill-window>
+      <div class="list-group" infinite-scroll="users.$next(5)" infinite-scroll-distance="3" infinite-scroll-parent="true">
+        <a href="#" class="list-group-item" ng-repeat="user in users | filter:{$id: '!$currentUser.$id'}:true" ng-click="talkTo(user)">
+          <span class="glyphicon glyphicon-user" ng-class="user.presence ? 'online' : ''"></span>
+          {{user.name}}
+        </a>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,20 +1,11 @@
 angular.module('angularfire-resource')
 
-.factory 'AssociationFactory', ($injector, $firebaseUtils) ->
+.factory 'AssociationFactory', ($injector, $firebaseUtils, AssociationCollection) ->
 
   class AssociationsFactory
 
     publicKey = (name) -> '$' + name
     privateKey = (name) -> '$$' + name
-
-    setAttrIfDifferent = (attr, value, cb) ->
-      if @[attr] == value
-        $firebaseUtils.resolve()
-      else
-        def = $firebaseUtils.defer()
-        @$ref().child(attr).set value, $firebaseUtils.makeNodeResolver(def)
-        def = def.promise.then(cb) if cb
-        def
 
     throwError = (Resource, type, name, key) ->
       throw "Exception : #{Resource.$name.camelize(true)} #{type} #{name}, #{key} is mandatory"
@@ -38,6 +29,7 @@ angular.module('angularfire-resource')
     create: (type, name, opts, cb) ->
       @_addToMap(type, name, opts)
       @['create' + type.camelize(true)](name, opts, cb)
+      @Resource
 
     inverseOf: (name) ->
       assoc = null
@@ -47,39 +39,82 @@ angular.module('angularfire-resource')
           break
       assoc
 
+    get: (name) ->
+      @map[name]
+
+    _ResourceAdd: (name, cb) ->
+      @Resource::[publicKey name] = cb
+
+
     createHasMany: (name, opts, cb) ->
-      @Resource::[publicKey name ] = (updateRef) ->
+      @_ResourceAdd name, (updateRef) ->
         if updateRef or not @[privateKey name]
           @[privateKey name].$destroy() if @[privateKey name]
-          @[privateKey name] = new fireCollection this, name, opts, updateRef or cb
+          @[privateKey name] = new AssociationCollection this, name, opts, (updateRef or cb)
         else
           @[privateKey name]
 
+      @map[name].reverseAssociationSet = (action = 'add', record) ->
+        if action is 'add'
+          @[publicKey name ]().$add record
+        else if action is 'remove'
+          @[publicKey name ]().$remove record
+
+
     createHasOne: (name, opts) ->
-      # $association , association getter
-      @Resource::[publicKey name] = () ->
+      # association getter
+      @_ResourceAdd name, ->
         klass = $injector.get opts.className
-        if @[opts.foreignKey]
-          @[privateKey name] or= new klass klass.$ref().child @[opts.foreignKey]
+        if @[opts.foreignKey]?
+          @[privateKey name] or= klass.$find(@[opts.foreignKey])
         else
           null
 
-      # $createAssociation (Record the new instance and link it to the current one)
-      @Resource::[publicKey('create' + name.camelize(true))] = (data) ->
+      setIfDifferent = (instance, foreignKey, oldResource, newResource) ->
+
+      @_ResourceAdd "set#{name.camelize(true)}", (newResource) ->
+        oldResource = @[publicKey name]()
+
+        $firebaseUtils.resolve(oldResource == newResource)
+
+          .then (same) ->
+            $firebaseUtils.reject() if same
+
+          #update the foreign key and the cached assoc
+          .then =>
+            @[privateKey name] = newResource #resource or null
+            def = $firebaseUtils.defer()
+            @$ref().child(opts.foreignKey).set(
+              if newResource then newResource.$id else null,
+              $firebaseUtils.makeNodeResolver(def)
+            )
+            def.promise
+
+          #remove this from old resource if old resource
+          .then =>
+            oldResource.constructor._assoc.get(opts.inverseOf).reverseAssociationSet.call(oldResource, 'remove', this) if oldResource
+
+          #add new resource to this if new resource
+          .then =>
+            newResource.constructor._assoc.get(opts.inverseOf).reverseAssociationSet.call(newResource, 'add', this) if newResource
+
+          .then =>
+            newResource
+
+          # when no change has to be made, just
+          .catch ->
+            $firebaseUtils.resolve(newResource)
+
+
+      # association builder (Record the new instance and link it to the current one)
+      @_ResourceAdd "create#{name.camelize(true)}" , (data) ->
         klass = $injector.get(opts.className)
         klass.$create(data).then (resource) =>
-          @[publicKey('set' + name.camelize(true))](resource)
+#          @map.get(name).reverseSet.call(this, resource)
+          @['$set' + name.camelize(true)](resource)
 
-      # $setAssociation (Record the foreign key of the associated instance, and call the inverse setter)
-      @Resource::[publicKey('set' + name.camelize(true))] = (resource) ->
-        setAttrIfDifferent.call this, opts.foreignKey, resource.$id, =>
-          klass = $injector.get(opts.className)
-          reverseSetter = publicKey 'set' + klass._assoc.inverseOf(name).name.camelize(true)
-          resource[reverseSetter](this)
-
-    createBelongsTo: (name, opts) ->
-      # Set the foreignKey of the child with the parent_id, then $add the child to the parent collection
-      @Resource::[publicKey "set#{name.camelize(true)}"] = (resource) ->
-        setAttrIfDifferent.call this, opts.foreignKey, resource.$id, =>
-          resource[publicKey opts.inverseOf]().$add this
-
+      @map[name].reverseAssociationSet = (action = 'add', record) ->
+        if action is 'add'
+          @['$set' + name.camelize(true)](record)
+        else if action is 'remove'
+          @['$set' + name.camelize(true)](null)

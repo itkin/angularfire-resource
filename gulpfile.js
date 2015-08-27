@@ -39,7 +39,7 @@ gulp.task('html', function(){
 });
 
 gulp.task('watch', function () {
-  gulp.watch(['demo/*.html'], ['html']);
+  gulp.watch(['demo/*'], ['html']);
   gulp.watch('src/**/*.coffee', ['coffee']);
 });
 

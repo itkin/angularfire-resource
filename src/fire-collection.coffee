@@ -1,9 +1,33 @@
 
 angular.module('angularfire-resource')
 
-.factory 'fireCollection', ($firebaseArray, $injector, $firebaseUtils) ->
-
+.factory 'Collection', ($firebaseArray) ->
   class Collection
+    constructor: (targetClass, ref) ->
+      @$$targetClass = targetClass
+      ref or= @$$targetClass.$ref().ref()
+
+      return $firebaseArray.call this, ref
+
+    # retrieve the associated resource
+    $$added: (snap) ->
+      result = $firebaseArray::$$added.apply(this, arguments)
+      if result
+        @$$targetClass.$find(snap.key()).$loaded()
+      else
+        result
+
+    $next: (pageSize) ->
+      if @$ref().scroll
+        @$ref().scroll.next(pageSize)
+      else
+        false
+
+  $firebaseArray.$extend Collection
+
+.factory 'AssociationCollection', ($firebaseArray, $injector, Collection, $firebaseUtils) ->
+
+  class AssociationCollection extends Collection
 
     constructor: (parentRecord, name, opts, cb) ->
       @$$options = opts
@@ -16,14 +40,13 @@ angular.module('angularfire-resource')
       ref = cb(ref) if cb?
       return $firebaseArray.call this, ref
 
-    _setInverseAssociation: (resource) ->
-      resource['$set' + @$$options.inverseOf.camelize(true)].call(resource, @$parentRecord)
+    _setReverseAssociation: (action = 'add', resource) ->
+      reverseAssoc = resource.constructor._assoc.get(@$$options.inverseOf)
+      if action is 'add'
+        reverseAssoc.reverseAssociationSet.call(resource, 'add', @$parentRecord)
+      else if action is 'remove'
+        reverseAssoc.reverseAssociationSet.call(resource, 'remove', @$parentRecord)
 
-    $next: (pageSize) ->
-      if @$ref().scroll
-        @$ref().scroll.next(pageSize)
-      else
-        false
 
     # delegate to the parent klass constructor to create item and then add it to the collection
     $create: (data)->
@@ -33,27 +56,29 @@ angular.module('angularfire-resource')
     # We do not use $save to save a $$notify cb
     $add: (resource) ->
       if @$indexFor(resource.$id) != -1
-        $firebaseUtils.resolve()
+        $firebaseUtils.resolve(resource)
       else
         def = $firebaseUtils.defer()
         @$ref().child(resource.$id).set true, $firebaseUtils.makeNodeResolver(def)
         def.promise.then =>
-          @_setInverseAssociation(resource)
+          @_setReverseAssociation('add', resource)
+          resource
 
-    # retrieve the associated resource
-    $$added: (snap) ->
-      result = $firebaseArray::$$added.apply(this, arguments)
-      if result
-        @$$targetClass.$find(snap.key()).$loaded()
-      else
-        result
+    $remove: (resource) ->
+      $firebaseArray::$remove.call(this, resource)
+      .then =>
+        @_setReverseAssociation('remove', resource)
+      #resource not found (has already been return)
+      .catch =>
+#        console.log(this, arguments)
+        resource
 
-    $destroy: ->
-      item.$destroy() for item in @$list
-      $firebaseArray::$destroy.apply(this, arguments)
+
+#    $destroy: ->
+##      item.$destroy() for item in @$list
+#      $firebaseArray::$destroy.apply(this, arguments)
 
     $$notify: ->
-      console.log 'collection', arguments
+      console.log @$parentRecord.constructor.$name.camelize(true), @$parentRecord.$id, @$name, arguments
       $firebaseArray::$$notify.apply this, arguments
 
-    $firebaseArray.$extend Collection
