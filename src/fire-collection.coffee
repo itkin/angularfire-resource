@@ -53,14 +53,14 @@ angular.module('angularfire-resource')
       @$ref().child(resource.$id).set true, $firebaseUtils.makeNodeResolver(def)
       def.promise
         .then =>
-          resource.constructor._assoc.get(@$$options.inverseOf).add(@$parentRecord, to: resource)
+          resource.constructor._assoc[@$$options.inverseOf].add(@$parentRecord, to: resource)
         .then ->
           resource
 
     $remove: (resource) ->
       $firebaseArray::$remove.call(this, resource)
       .then =>
-        resource.constructor._assoc.get(@$$options.inverseOf).remove(@$parentRecord, from: resource)
+        resource.constructor._assoc[@$$options.inverseOf].remove(@$parentRecord, from: resource)
       .then ->
         resource
       .catch =>
@@ -72,6 +72,6 @@ angular.module('angularfire-resource')
 #      $firebaseArray::$destroy.apply(this, arguments)
 
     $$notify: ->
-      console.log @$parentRecord.constructor.$name.camelize(true), @$parentRecord.$id, @$name, arguments
+      console.log @$parentRecord.constructor.$name.camelize(true), @$parentRecord.$id, @$name, arguments[0], arguments[1]
       $firebaseArray::$$notify.apply this, arguments
 

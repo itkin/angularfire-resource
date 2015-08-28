@@ -13,7 +13,7 @@
     <tabset id="conversations">
       <tab ng-repeat="conversation in $currentUser.$activeConversations()"
            select="selectConversation(conversation)"
-           active="conversation._displayed">
+           active="conversation.$$displayed">
 
         <tab-heading>
           <span ng-repeat="user in conversation.$users() | filter : { $id : '!'+ $currentUser.$id } ">

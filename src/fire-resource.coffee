@@ -7,14 +7,16 @@ angular.module('angularfire-resource')
     class Resource
 
       map = {}
-
+      @map = map
       constructor: (ref) ->
 
         map[ref.key()]= this
 
         $firebaseObject.call this, ref
 
-      @_assoc: new AssociationFactory(Resource)
+        this
+
+      @_assoc: {}
 
       @clearMap: ->
         for key, instance of map
@@ -44,13 +46,15 @@ angular.module('angularfire-resource')
           new Resource Resource.$ref().child(key)
 
       @hasMany: (name, opts={}, cb)->
-        @_assoc.create 'hasMany', name, opts, cb
+        @_assoc[name] = new AssociationFactory.HasMany(this, name, opts, cb)
+        this
 
       @hasOne: (name, opts = {}) ->
-        @_assoc.create 'hasOne', name, opts
+        @_assoc[name] = new AssociationFactory.HasOne(this, name, opts)
+        this
 
       $destroy: ->
-        for name, opts of @constructor._assoc.map
+        for name, assoc of @constructor._assoc
           @['$$' + name].$destroy() if @['$$' + name]?
         $firebaseObject.prototype.$destroy.apply(this, arguments)
         delete map[@$id]
@@ -59,13 +63,16 @@ angular.module('angularfire-resource')
         angular.extend this, data
         @$save()
 
+      $$updated: (snap) ->
+        $firebaseObject::$$updated.apply(this, arguments)
+
       $save: ->
         $firebaseObject.prototype.$save.apply(this, arguments).then =>
           this
 
 
       $$notify: ->
-        console.log 'resource', @$id, arguments
+        console.log @constructor.$name.camelize(true), @$id, "updated"
         $firebaseObject::$$notify.apply this, arguments
 
       $firebaseObject.$extend Resource

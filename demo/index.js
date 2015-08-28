@@ -8,7 +8,7 @@ angular.module('myApp', [
   ])
   .factory('$firebase', function() {
     return new Firebase('https://fireresourcetest.firebaseio.com/');
-    return new Firebase('ws://127.0.1:5000');
+    //return new Firebase('ws://127.0.1:5000');
   })
   .factory('User', function(FireResource, $firebase) {
     return FireResource($firebase.child('users'))
@@ -147,7 +147,7 @@ angular.module('myApp', [
       }
     }
   })
-  .controller('ChatController', function($scope, $filter, $state, $firebase, $q, User, Conversation, $window, $timeout, $firebaseArray, $currentUser) {
+  .controller('ChatController', function($scope, $filter, $state, $timeout, $firebase, $q, User, Conversation, $window, $timeout, $firebaseArray, $currentUser) {
 
     $scope.users = User.$query(function(baseRef){
       return new Firebase.util.Scroll(baseRef, 'presence')
@@ -166,21 +166,14 @@ angular.module('myApp', [
     };
 
     $scope.selectConversation = function(conversation){
-      conversation._display = true
       $currentUser.$setDisplayedConversation(conversation)
-        //.then(function(conversation){
-        //  conversation.$messages() .$next(5)
-        //})
     };
 
     $scope.closeConv = function($event, conv){
-      $event.preventDefault();
-      $event.stopImmediatePropagation();
       $currentUser.$activeConversations().$remove(conv);
-      if ($currentUser.$displayedConversation() == conv ){
-        $currentUser.$setDisplayedConversation(null)
-      }
+      return false
     };
+
     $scope.talkTo = function(user){
       $q.resolve(_.find($currentUser.$conversations(), function(conv){ return (conv.users||[])[user.$id] ? true : false }))
         .then(function(conv){
@@ -195,16 +188,17 @@ angular.module('myApp', [
           return $currentUser.$activeConversations().$add(conversation)
         })
         .then(function(conversation){
-          $scope.selectConversation(conversation)
+          conversation.$$displayed = true;
         });
     };
+  })
+  .run(function($window, $timeout, $rootScope, $firebase, $firebaseObject, $firebaseArray, User,  $q) {
+    $window.$timeout = $timeout
+    $window.$firebase = $firebase;
+    $window.$firebaseObject = $firebaseObject;
+    $window.$firebaseArray = $firebaseArray;
+    $window.User = User;
+    //$window.user = User.$find('-JxTmHHaQKFF4pubQDiB');
+    //$window.user = User.$find('-JxQLz-l-U_z4d2hy4Z9');
+    $window.$q= $q
   });
-  //.run(function($window, $rootScope, $firebase, $firebaseObject, $firebaseArray, User,  $q) {
-  //  $window.$firebase = $firebase;
-  //  $window.$firebaseObject = $firebaseObject;
-  //  $window.$firebaseArray = $firebaseArray;
-  //  $window.User = User;
-  //  //$window.user = User.$find('-JxTmHHaQKFF4pubQDiB');
-  //  $window.user = User.$find('-JxQLz-l-U_z4d2hy4Z9');
-  //  $window.$q= $q
-  //});
