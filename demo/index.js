@@ -12,8 +12,7 @@ angular.module('myApp', [
   })
   .factory('User', function(FireResource, $firebase) {
     return FireResource($firebase.child('users'))
-      .hasMany('conversations', {className: 'Conversation', inverseOf: 'users' })
-      .hasMany('messages', {className: 'Message', inverseOf: "user" })
+      .hasMany('conversations')
       .hasMany('activeConversations', {className: 'Conversation', inverseOf: 'activeAtUsers' })
       .hasOne('displayedConversation', {className: 'Conversation', inverseOf: 'displayedAtUsers', foreignKey: 'displayedConversationId' })
   })
@@ -32,8 +31,8 @@ angular.module('myApp', [
   })
   .factory('Message', function(FireResource, $firebase) {
     return FireResource($firebase.child('messages'))
-      .hasOne('user', {className: 'User', inverseOf: "messages", foreignKey: "userId"})
-      .hasOne('conversation', {className: 'Conversation', inverseOf: "messages", foreignKey: "conversationId"})
+      .hasOne('user', { inverseOf: false })
+      .hasOne('conversation')
   })
   .factory('$auth', function($firebaseAuth, $firebase){
     return $firebaseAuth($firebase)
@@ -153,7 +152,7 @@ angular.module('myApp', [
       return new Firebase.util.Scroll(baseRef, 'presence')
     });
 
-    $scope.users.$next(5);
+    $scope.users.$next(100);
 
     $scope.newMessage = {};
 
@@ -161,7 +160,7 @@ angular.module('myApp', [
       $currentUser.$displayedConversation().$messages().$create(angular.extend({},$scope.newMessage, {userId: $currentUser.$id}))
         .then(function(message){
           $scope.newMessage = {}
-          message.$setUser($currentUser)
+          //message.$setUser($currentUser)
         })
     };
 

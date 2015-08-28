@@ -23,23 +23,32 @@ angular.module('angularfire-resource')
 
   ensure_options = (Resource, type, name, opts) ->
     for key in ['className', 'inverseOf']
-      throwError(Resource, type, name, key) unless opts[key]
+      throwError(Resource, type, name, key) unless opts[key]?
 
     if type isnt 'HasMany' and not opts.foreignKey?
       throwError(Resource, type, name, 'foreignKey')
     true
 
-  HasMany = (Resource, name, opts, cb) ->
+  HasMany = (Resource, name, opts={}, cb) ->
     @type = 'HasMany'
+    @name = name
+
+    opts.inverseOf or= Resource.$name.replace(/s$/,'').camelize(true) unless opts.inverseOf == false
+    opts.className or= name.replace(/s$/,'').camelize(true)
 
     ensure_options(Resource, @type, name, opts)
 
     @$$conf = angular.extend(name: name, opts)
 
+    @reverseAssociation = ->
+      $injector.get(opts.className)._assoc[opts.inverseOf] if opts.inverseOf
+
+    self = this
+
     Resource::[publicKey name] = (updateRef) ->
       if updateRef or not @[privateKey name]
         @[privateKey name].$destroy() if @[privateKey name]
-        @[privateKey name] = new AssociationCollection this, name, opts, (updateRef or cb)
+        @[privateKey name] = new AssociationCollection this, self, opts, (updateRef or cb)
       else
         @[privateKey name]
 
@@ -50,20 +59,25 @@ angular.module('angularfire-resource')
 
     @add = (resource, params) ->
       def = $firebaseUtils.defer()
-      Resource.$ref().child(getResourceId(params.to)).child(name).child(getResourceId(resource)).set(resource.$id, $firebaseUtils.makeNodeResolver(def))
+      Resource.$ref().child(getResourceId(params.to)).child(name).child(getResourceId(resource)).set(getResourceId(resource), $firebaseUtils.makeNodeResolver(def))
       def.promise
 
     this
 
-  HasOne = (Resource, name, opts, cb) ->
+  HasOne = (Resource, name, opts={}) ->
     @type = 'HasOne'
+    @name = name
+
+    opts.inverseOf  or= Resource.$name.camelize(true) unless opts.inverseOf == false
+    opts.className  or= name.camelize(true)
+    opts.foreignKey or= name + 'Id'
 
     ensure_options(Resource, @type, name, opts)
 
     @$$conf = angular.extend(name: name, opts)
 
     reverseAssociation = ->
-      $injector.get(opts.className)._assoc[opts.inverseOf]
+      $injector.get(opts.className)._assoc[opts.inverseOf] if opts.inverseOf
 
     association = this
 
@@ -116,11 +130,11 @@ angular.module('angularfire-resource')
 
         #remove this from old resource if old resource
         .then =>
-          reverseAssociation().remove(this, from: oldResourceId) if oldResourceId
+          reverseAssociation().remove(this, from: oldResourceId) if oldResourceId and reverseAssociation()
 
         #add new resource to this if new resource
         .then =>
-          reverseAssociation().add(this, to: newResource) if newResource
+          reverseAssociation().add(this, to: newResource) if newResource and reverseAssociation()
 
         .then =>
           newResource

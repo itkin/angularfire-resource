@@ -29,41 +29,40 @@ angular.module('angularfire-resource')
 
   class AssociationCollection extends Collection
 
-    constructor: (parentRecord, name, opts, cb) ->
+    constructor: (parentRecord, association, opts, cb) ->
       @$$options = opts
       @$$targetClass = $injector.get @$$options.className
-
+      @$$association = association
+      
       @$parentRecord = parentRecord
-      @$name = name
 
-      ref = @$parentRecord.$ref().child(@$name) if @$parentRecord
+      ref = @$parentRecord.$ref().child(@$$association.name) if @$parentRecord
       ref = cb(ref) if cb?
       return $firebaseArray.call this, ref
-
-
 
     # delegate to the parent klass constructor to create item and then add it to the collection
     $create: (data)->
       @$$targetClass.$create(data).then (resource) =>
         @$add(resource)
 
+
     # We do not use $save to save a $$notify cb
     $add: (resource) ->
-      def = $firebaseUtils.defer()
-      @$ref().child(resource.$id).set true, $firebaseUtils.makeNodeResolver(def)
-      def.promise
+      @$$association.add(resource, to: @$parentRecord)
         .then =>
-          resource.constructor._assoc[@$$options.inverseOf].add(@$parentRecord, to: resource)
+          @$$association.reverseAssociation().add(@$parentRecord, to: resource) if @$$association.reverseAssociation()
+#          resource.constructor._assoc[@$$options.inverseOf].add(@$parentRecord, to: resource)
         .then ->
           resource
 
     $remove: (resource) ->
       $firebaseArray::$remove.call(this, resource)
       .then =>
-        resource.constructor._assoc[@$$options.inverseOf].remove(@$parentRecord, from: resource)
+        @$$association.reverseAssociation().remove(@$parentRecord, from: resource) if @$$association.reverseAssociation()
       .then ->
         resource
       .catch =>
+        console.log @$$association.name.camelize(true), @$parentRecord.$id, @$$association.name, arguments
         resource
 
 
@@ -72,6 +71,6 @@ angular.module('angularfire-resource')
 #      $firebaseArray::$destroy.apply(this, arguments)
 
     $$notify: ->
-      console.log @$parentRecord.constructor.$name.camelize(true), @$parentRecord.$id, @$name, arguments[0], arguments[1]
+      console.log @$$association.name.camelize(true), @$parentRecord.$id, @$$association.name, arguments[0], arguments[1]
       $firebaseArray::$$notify.apply this, arguments
 
