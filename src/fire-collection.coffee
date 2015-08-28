@@ -40,12 +40,6 @@ angular.module('angularfire-resource')
       ref = cb(ref) if cb?
       return $firebaseArray.call this, ref
 
-    _setReverseAssociation: (action = 'add', resource) ->
-      reverseAssoc = resource.constructor._assoc.get(@$$options.inverseOf)
-      if action is 'add'
-        reverseAssoc.reverseAssociationSet.call(resource, 'add', @$parentRecord)
-      else if action is 'remove'
-        reverseAssoc.reverseAssociationSet.call(resource, 'remove', @$parentRecord)
 
 
     # delegate to the parent klass constructor to create item and then add it to the collection
@@ -55,22 +49,21 @@ angular.module('angularfire-resource')
 
     # We do not use $save to save a $$notify cb
     $add: (resource) ->
-      if @$indexFor(resource.$id) != -1
-        $firebaseUtils.resolve(resource)
-      else
-        def = $firebaseUtils.defer()
-        @$ref().child(resource.$id).set true, $firebaseUtils.makeNodeResolver(def)
-        def.promise.then =>
-          @_setReverseAssociation('add', resource)
+      def = $firebaseUtils.defer()
+      @$ref().child(resource.$id).set true, $firebaseUtils.makeNodeResolver(def)
+      def.promise
+        .then =>
+          resource.constructor._assoc.get(@$$options.inverseOf).add(@$parentRecord, to: resource)
+        .then ->
           resource
 
     $remove: (resource) ->
       $firebaseArray::$remove.call(this, resource)
       .then =>
-        @_setReverseAssociation('remove', resource)
-      #resource not found (has already been return)
+        resource.constructor._assoc.get(@$$options.inverseOf).remove(@$parentRecord, from: resource)
+      .then ->
+        resource
       .catch =>
-#        console.log(this, arguments)
         resource
 
 

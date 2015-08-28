@@ -8,7 +8,7 @@ angular.module('myApp', [
   ])
   .factory('$firebase', function() {
     return new Firebase('https://fireresourcetest.firebaseio.com/');
-    //return new Firebase('ws://127.0.1:5000');
+    return new Firebase('ws://127.0.1:5000');
   })
   .factory('User', function(FireResource, $firebase) {
     return FireResource($firebase.child('users'))
