@@ -55,13 +55,17 @@ angular.module('angularfire-resource').factory('AssociationFactory', function($i
         throwError(Resource, type, name, key);
       }
     }
-    if (type !== 'hasMany' && (opts.foreignKey == null)) {
+    if (type !== 'HasMany' && (opts.foreignKey == null)) {
       throwError(Resource, type, name, 'foreignKey');
     }
     return true;
   };
   HasMany = function(Resource, name, opts, cb) {
-    ensure_options(Resource, 'hasMany', name, opts);
+    this.type = 'HasMany';
+    ensure_options(Resource, this.type, name, opts);
+    this.$$conf = angular.extend({
+      name: name
+    }, opts);
     Resource.prototype[publicKey(name)] = function(updateRef) {
       if (updateRef || !this[privateKey(name)]) {
         if (this[privateKey(name)]) {
@@ -88,7 +92,11 @@ angular.module('angularfire-resource').factory('AssociationFactory', function($i
   };
   HasOne = function(Resource, name, opts, cb) {
     var association, reverseAssociation;
-    ensure_options(Resource, 'hasOne', name, opts);
+    this.type = 'HasOne';
+    ensure_options(Resource, this.type, name, opts);
+    this.$$conf = angular.extend({
+      name: name
+    }, opts);
     reverseAssociation = function() {
       return $injector.get(opts.className)._assoc[opts.inverseOf];
     };
@@ -376,7 +384,20 @@ angular.module('angularfire-resource').factory('FireResource', function($firebas
       };
 
       Resource.prototype.$$updated = function(snap) {
-        return $firebaseObject.prototype.$$updated.apply(this, arguments);
+        var assoc, name, old, ref1, result;
+        old = $firebaseUtils.toJSON(this);
+        result = $firebaseObject.prototype.$$updated.apply(this, arguments);
+        ref1 = this.constructor._assoc;
+        for (name in ref1) {
+          assoc = ref1[name];
+          if (assoc.type === 'HasOne') {
+            if ((this["$$" + name] != null) && this[assoc.$$conf.foreignKey] !== old[assoc.$$conf.foreignKey]) {
+              this["$$" + name] = null;
+              this["$" + name]();
+            }
+          }
+        }
+        return result;
       };
 
       Resource.prototype.$save = function() {

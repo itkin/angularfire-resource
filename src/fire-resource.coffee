@@ -63,8 +63,15 @@ angular.module('angularfire-resource')
         angular.extend this, data
         @$save()
 
+      # Update cached instance for hasOne assoc if changed server side
       $$updated: (snap) ->
-        $firebaseObject::$$updated.apply(this, arguments)
+        old = $firebaseUtils.toJSON(this)
+        result = $firebaseObject::$$updated.apply(this, arguments)
+        for name, assoc of @constructor._assoc when assoc.type is 'HasOne'
+          if @["$$#{name}"]? and @[assoc.$$conf.foreignKey] != old[assoc.$$conf.foreignKey]
+            @["$$#{name}"] = null
+            @["$#{name}"]()
+        result
 
       $save: ->
         $firebaseObject.prototype.$save.apply(this, arguments).then =>

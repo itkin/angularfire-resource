@@ -25,13 +25,16 @@ angular.module('angularfire-resource')
     for key in ['className', 'inverseOf']
       throwError(Resource, type, name, key) unless opts[key]
 
-    if type isnt 'hasMany' and not opts.foreignKey?
+    if type isnt 'HasMany' and not opts.foreignKey?
       throwError(Resource, type, name, 'foreignKey')
     true
 
   HasMany = (Resource, name, opts, cb) ->
+    @type = 'HasMany'
 
-    ensure_options(Resource, 'hasMany', name, opts)
+    ensure_options(Resource, @type, name, opts)
+
+    @$$conf = angular.extend(name: name, opts)
 
     Resource::[publicKey name] = (updateRef) ->
       if updateRef or not @[privateKey name]
@@ -53,8 +56,11 @@ angular.module('angularfire-resource')
     this
 
   HasOne = (Resource, name, opts, cb) ->
+    @type = 'HasOne'
 
-    ensure_options(Resource, 'hasOne', name, opts)
+    ensure_options(Resource, @type, name, opts)
+
+    @$$conf = angular.extend(name: name, opts)
 
     reverseAssociation = ->
       $injector.get(opts.className)._assoc[opts.inverseOf]
