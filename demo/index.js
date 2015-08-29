@@ -12,27 +12,34 @@ angular.module('myApp', [
   })
   .factory('User', function(FireResource, $firebase) {
     return FireResource($firebase.child('users'))
-      .hasMany('conversations')
+      .hasMany('conversations', {inverseOf: 'users'})
       .hasMany('activeConversations', {className: 'Conversation', inverseOf: 'activeAtUsers' })
       .hasOne('displayedConversation', {className: 'Conversation', inverseOf: 'displayedAtUsers', foreignKey: 'displayedConversationId' })
   })
   .factory('Conversation', function(FireResource, $firebase) {
-    Conversation = FireResource($firebase.child('conversations'))
-      .hasMany('users', {className: "User", inverseOf: 'conversations'})
-      .hasMany('messages', {className: "Message", inverseOf: 'conversation'}, function(baseRef){
-        //return new Firebase.util.Scroll(baseRef, '$key')
-        return baseRef
-      })
-      .hasMany('activeAtUsers', {className: 'User', inverseOf: 'activeConversations' })
-      .hasMany('displayedAtUsers', {className: 'User', inverseOf: 'displayedConversation' });
+    return FireResource($firebase.child('conversations'), function(){
+      this.hasMany('users', {className: "User", inverseOf: 'conversations'});
+      this.hasMany('messages', {className: "Message", inverseOf: 'conversation', storedAt: 'createdAtDesc' }, function(baseRef){
+        return new Firebase.util.Scroll(baseRef, '$value')
+      });
+      this.hasMany('activeAtUsers', {className: 'User', inverseOf: 'activeConversations' })
+      this.hasMany('displayedAtUsers', {className: 'User', inverseOf: 'displayedConversation' });
+    });
 
-    return Conversation
 
   })
   .factory('Message', function(FireResource, $firebase) {
-    return FireResource($firebase.child('messages'))
-      .hasOne('user', { inverseOf: false })
-      .hasOne('conversation')
+    var Message = FireResource($firebase.child('messages'), function(){
+      this.hasOne('user', { inverseOf: false });
+      this.hasOne('conversation');
+    });
+    var originalCreate = Message.$create;
+    Message.$create = function(data){
+      data = data || {};
+      data['createdAtDesc'] = - Date.now()
+      return originalCreate.apply(this, [data]);
+    }
+    return Message
   })
   .factory('$auth', function($firebaseAuth, $firebase){
     return $firebaseAuth($firebase)
@@ -159,37 +166,49 @@ angular.module('myApp', [
     $scope.sendMessage = function(){
       $currentUser.$displayedConversation().$messages().$create(angular.extend({},$scope.newMessage, {userId: $currentUser.$id}))
         .then(function(message){
-          $scope.newMessage = {}
+          $scope.newMessage = {};
           //message.$setUser($currentUser)
         })
     };
 
     $scope.selectConversation = function(conversation){
       $currentUser.$setDisplayedConversation(conversation)
+      conversation.$messages().$next(5)
     };
 
     $scope.closeConv = function($event, conv){
       $currentUser.$activeConversations().$remove(conv);
       return false
     };
+    $currentUser.$conversations();
 
-    $scope.talkTo = function(user){
-      $q.resolve(_.find($currentUser.$conversations(), function(conv){ return (conv.users||[])[user.$id] ? true : false }))
-        .then(function(conv){
-          if (conv) { return conv }
+    $scope.talkTo = function(user) {
+      $currentUser.$conversations().$loaded()
+        .then(function (conversations) {
+          return _.find(conversations, function (conv) {
+            return (conv.users || [])[user.$id] ? true : false
+          })
+        })
+        .then(function (conv) {
+          if (conv) {
+            return conv
+          }
           else {
-            return $currentUser.$conversations().$create().then(function(conversation){
-              return conversation.$users().$add(User.$find(user.$id)).then(function(){ return conversation });
+            return $currentUser.$conversations().$create().then(function (conversation) {
+              return conversation.$users().$add(User.$find(user.$id)).then(function () {
+                return conversation
+              });
             })
           }
         })
-        .then(function(conversation){
+        .then(function (conversation) {
+          user.$activeConversations().$add(conversation)
           return $currentUser.$activeConversations().$add(conversation)
         })
-        .then(function(conversation){
+        .then(function (conversation) {
           conversation.$$displayed = true;
-        });
-    };
+        })
+    }
   })
   .run(function($window, $timeout, $rootScope, $firebase, $firebaseObject, $firebaseArray, User,  $q) {
     $window.$timeout = $timeout

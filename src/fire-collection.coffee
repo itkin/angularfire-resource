@@ -23,6 +23,12 @@ angular.module('angularfire-resource')
       else
         false
 
+    $prev: (pageSize) ->
+      if @$ref().scroll
+        @$ref().scroll.prev(pageSize)
+      else
+        false
+
   $firebaseArray.$extend Collection
 
 .factory 'AssociationCollection', ($firebaseArray, $injector, Collection, $firebaseUtils) ->
@@ -49,11 +55,11 @@ angular.module('angularfire-resource')
     # We do not use $save to save a $$notify cb
     $add: (resource) ->
       @$$association.add(resource, to: @$parentRecord)
-        .then =>
-          @$$association.reverseAssociation().add(@$parentRecord, to: resource) if @$$association.reverseAssociation()
-#          resource.constructor._assoc[@$$options.inverseOf].add(@$parentRecord, to: resource)
-        .then ->
-          resource
+        .then (resource) =>
+          @$$association.reverseAssociation().add(@$parentRecord, to: resource)
+            .then -> resource
+
+
 
     $remove: (resource) ->
       $firebaseArray::$remove.call(this, resource)

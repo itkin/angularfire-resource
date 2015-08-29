@@ -33,7 +33,7 @@ angular.module('angularfire-resource')
     @type = 'HasMany'
     @name = name
 
-    opts.inverseOf or= Resource.$name.replace(/s$/,'').camelize(true) unless opts.inverseOf == false
+    opts.inverseOf or= Resource.$name.replace(/s$/,'') unless opts.inverseOf == false
     opts.className or= name.replace(/s$/,'').camelize(true)
 
     ensure_options(Resource, @type, name, opts)
@@ -55,12 +55,24 @@ angular.module('angularfire-resource')
     @remove = (resource, params) ->
       def = $firebaseUtils.defer()
       Resource.$ref().child(getResourceId(params.from)).child(name).child(getResourceId(resource)).set(null, $firebaseUtils.makeNodeResolver(def))
-      def.promise
+      def.promise.then -> resource
 
     @add = (resource, params) ->
       def = $firebaseUtils.defer()
-      Resource.$ref().child(getResourceId(params.to)).child(name).child(getResourceId(resource)).set(getResourceId(resource), $firebaseUtils.makeNodeResolver(def))
-      def.promise
+
+      if angular.isArray(opts.storedAt)
+        value = {}
+        for key in opts
+          value[key] = if angular.isFunction(resource[key]) then resource[key]() else resource[key]
+      else if angular.isFunction(opts.storedAt)
+        value = opts.storedAt.call(resource, params.to)
+      else if angular.isString(opts.storedAt)
+        value = if angular.isFunction(resource[opts.storedAt]) then resource[opts.storedAt]() else resource[opts.storedAt]
+      else
+        value = true
+
+      Resource.$ref().child(getResourceId(params.to)).child(name).child(getResourceId(resource)).set(value, $firebaseUtils.makeNodeResolver(def))
+      def.promise.then -> resource
 
     this
 
@@ -68,7 +80,7 @@ angular.module('angularfire-resource')
     @type = 'HasOne'
     @name = name
 
-    opts.inverseOf  or= Resource.$name.camelize(true) unless opts.inverseOf == false
+    opts.inverseOf  or= Resource.$name unless opts.inverseOf == false
     opts.className  or= name.camelize(true)
     opts.foreignKey or= name + 'Id'
 
@@ -86,12 +98,12 @@ angular.module('angularfire-resource')
       Resource.$ref().child(getResourceId(params.from)).child(opts.foreignKey).once 'value', (snap)->
         if snap.val() isnt resource.$id
           snap.ref().set(null, $firebaseUtils.makeNodeResolver(def))
-      def.promise
+      def.promise.then -> resource
 
     @add = (resource, params) ->
       def = $firebaseUtils.defer()
       Resource.$ref().child(getResourceId(params.to)).child(opts.foreignKey).set(getResourceId(resource), $firebaseUtils.makeNodeResolver(def))
-      def.promise
+      def.promise.then -> resource
 
     Resource::[publicKey name] = ->
       klass = $injector.get opts.className

@@ -68,7 +68,7 @@ angular.module('angularfire-resource').factory('AssociationFactory', function($i
     this.type = 'HasMany';
     this.name = name;
     if (opts.inverseOf !== false) {
-      opts.inverseOf || (opts.inverseOf = Resource.$name.replace(/s$/, '').camelize(true));
+      opts.inverseOf || (opts.inverseOf = Resource.$name.replace(/s$/, ''));
     }
     opts.className || (opts.className = name.replace(/s$/, '').camelize(true));
     ensure_options(Resource, this.type, name, opts);
@@ -95,13 +95,30 @@ angular.module('angularfire-resource').factory('AssociationFactory', function($i
       var def;
       def = $firebaseUtils.defer();
       Resource.$ref().child(getResourceId(params.from)).child(name).child(getResourceId(resource)).set(null, $firebaseUtils.makeNodeResolver(def));
-      return def.promise;
+      return def.promise.then(function() {
+        return resource;
+      });
     };
     this.add = function(resource, params) {
-      var def;
+      var def, i, key, len, value;
       def = $firebaseUtils.defer();
-      Resource.$ref().child(getResourceId(params.to)).child(name).child(getResourceId(resource)).set(getResourceId(resource), $firebaseUtils.makeNodeResolver(def));
-      return def.promise;
+      if (angular.isArray(opts.storedAt)) {
+        value = {};
+        for (i = 0, len = opts.length; i < len; i++) {
+          key = opts[i];
+          value[key] = angular.isFunction(resource[key]) ? resource[key]() : resource[key];
+        }
+      } else if (angular.isFunction(opts.storedAt)) {
+        value = opts.storedAt.call(resource, params.to);
+      } else if (angular.isString(opts.storedAt)) {
+        value = angular.isFunction(resource[opts.storedAt]) ? resource[opts.storedAt]() : resource[opts.storedAt];
+      } else {
+        value = true;
+      }
+      Resource.$ref().child(getResourceId(params.to)).child(name).child(getResourceId(resource)).set(value, $firebaseUtils.makeNodeResolver(def));
+      return def.promise.then(function() {
+        return resource;
+      });
     };
     return this;
   };
@@ -113,7 +130,7 @@ angular.module('angularfire-resource').factory('AssociationFactory', function($i
     this.type = 'HasOne';
     this.name = name;
     if (opts.inverseOf !== false) {
-      opts.inverseOf || (opts.inverseOf = Resource.$name.camelize(true));
+      opts.inverseOf || (opts.inverseOf = Resource.$name);
     }
     opts.className || (opts.className = name.camelize(true));
     opts.foreignKey || (opts.foreignKey = name + 'Id');
@@ -135,13 +152,17 @@ angular.module('angularfire-resource').factory('AssociationFactory', function($i
           return snap.ref().set(null, $firebaseUtils.makeNodeResolver(def));
         }
       });
-      return def.promise;
+      return def.promise.then(function() {
+        return resource;
+      });
     };
     this.add = function(resource, params) {
       var def;
       def = $firebaseUtils.defer();
       Resource.$ref().child(getResourceId(params.to)).child(opts.foreignKey).set(getResourceId(resource), $firebaseUtils.makeNodeResolver(def));
-      return def.promise;
+      return def.promise.then(function() {
+        return resource;
+      });
     };
     Resource.prototype[publicKey(name)] = function() {
       var klass, name1;
@@ -240,6 +261,14 @@ angular.module('angularfire-resource').factory('Collection', function($firebaseA
       }
     };
 
+    Collection.prototype.$prev = function(pageSize) {
+      if (this.$ref().scroll) {
+        return this.$ref().scroll.prev(pageSize);
+      } else {
+        return false;
+      }
+    };
+
     return Collection;
 
   })();
@@ -276,16 +305,14 @@ angular.module('angularfire-resource').factory('Collection', function($firebaseA
       return this.$$association.add(resource, {
         to: this.$parentRecord
       }).then((function(_this) {
-        return function() {
-          if (_this.$$association.reverseAssociation()) {
-            return _this.$$association.reverseAssociation().add(_this.$parentRecord, {
-              to: resource
-            });
-          }
+        return function(resource) {
+          return _this.$$association.reverseAssociation().add(_this.$parentRecord, {
+            to: resource
+          }).then(function() {
+            return resource;
+          });
         };
-      })(this)).then(function() {
-        return resource;
-      });
+      })(this));
     };
 
     AssociationCollection.prototype.$remove = function(resource) {
@@ -318,9 +345,13 @@ angular.module('angularfire-resource').factory('Collection', function($firebaseA
 });
 
 angular.module('angularfire-resource').factory('FireResource', function($firebaseObject, $firebaseUtils, Collection, AssociationFactory) {
-  return function(resourceRef, resourceOptions) {
+  return function(resourceRef, resourceOptions, callback) {
     var Resource;
     if (resourceOptions == null) {
+      resourceOptions = {};
+    }
+    if (angular.isFunction(resourceOptions)) {
+      callback = resourceOptions;
       resourceOptions = {};
     }
     return Resource = (function() {
@@ -363,9 +394,12 @@ angular.module('angularfire-resource').factory('FireResource', function($firebas
 
       Resource.$create = function(data) {
         var def, ref;
+        if (data == null) {
+          data = {};
+        }
+        data.createdAt = Firebase.ServerValue.TIMESTAMP;
         def = $firebaseUtils.defer();
-        ref = Resource.$ref().push();
-        ref.set($firebaseUtils.toJSON(data), $firebaseUtils.makeNodeResolver(def));
+        ref = Resource.$ref().ref().push($firebaseUtils.toJSON(data), $firebaseUtils.makeNodeResolver(def));
         return def.promise.then(function() {
           return new Resource(ref).$loaded();
         });
@@ -420,11 +454,9 @@ angular.module('angularfire-resource').factory('FireResource', function($firebas
         ref1 = this.constructor._assoc;
         for (name in ref1) {
           assoc = ref1[name];
-          if (assoc.type === 'HasOne') {
-            if ((this["$$" + name] != null) && this[assoc.$$conf.foreignKey] !== old[assoc.$$conf.foreignKey]) {
-              this["$$" + name] = null;
-              this["$" + name]();
-            }
+          if (assoc.type === 'HasOne' && (this["$$" + name] != null) && this[assoc.$$conf.foreignKey] !== old[assoc.$$conf.foreignKey]) {
+            this["$$" + name] = null;
+            this["$" + name]();
           }
         }
         return result;
@@ -444,6 +476,12 @@ angular.module('angularfire-resource').factory('FireResource', function($firebas
       };
 
       $firebaseObject.$extend(Resource);
+
+      if (callback != null) {
+        callback.call(Resource);
+      }
+
+      Resource;
 
       return Resource;
 

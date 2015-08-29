@@ -23,14 +23,14 @@
         </tab-heading>
 
         <div class="filler" >
-          <!--<div infinite-scroll='conversation.messages().$next(10)' infinite-scroll-disabled="!conversation._displayed" infinite-scroll-distance='3' infinite-scroll-parent="true">-->
-          <div class="message panel panel-default"
-               ng-repeat="message in conversation.$messages()"
-               ng-class="message.userId == $currentUser.$id ? 'mine' : ''" >
-            <div class="panel-heading">{{message.userId == $currentUser.$id ? 'You' : message.$user().name }} wrote</div>
-            <div class="panel-body">{{message.content}}</div>
+          <div infinite-scroll='conversation.messages().$prev(2)' infinite-scroll-reverse="conversation.messages().$next(2)" infinite-scroll-disabled="!conversation._displayed" infinite-scroll-distance='3' infinite-scroll-parent="true">
+            <div class="message panel panel-default"
+                 ng-repeat="message in conversation.$messages() | orderBy:createdAt:true"
+                 ng-class="message.userId == $currentUser.$id ? 'mine' : ''" >
+              <div class="panel-heading">{{message.userId == $currentUser.$id ? 'You' : message.$user().name }} wrote</div>
+              <div class="panel-body">{{message.content}}</div>
+            </div>
           </div>
-          <!--</div>-->
         </div>
 
         <!--<div class="well" ng-if="$currentUser.$activeConversations().length == 0">-->

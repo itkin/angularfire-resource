@@ -2,7 +2,10 @@ angular.module('angularfire-resource')
 
 .factory 'FireResource', ($firebaseObject, $firebaseUtils, Collection, AssociationFactory) ->
 
-  (resourceRef, resourceOptions={}) ->
+  (resourceRef, resourceOptions={}, callback) ->
+    if angular.isFunction(resourceOptions)
+      callback = resourceOptions
+      resourceOptions = {}
 
     class Resource
 
@@ -31,11 +34,10 @@ angular.module('angularfire-resource')
       @$ref: ->
         resourceRef
 
-      @$create: (data) ->
-        # new Resource(Resource.$ref().push(data)).$loaded()
+      @$create: (data={}) ->
+        data.createdAt= Firebase.ServerValue.TIMESTAMP
         def = $firebaseUtils.defer()
-        ref = Resource.$ref().push()
-        ref.set $firebaseUtils.toJSON(data), $firebaseUtils.makeNodeResolver(def)
+        ref = Resource.$ref().ref().push($firebaseUtils.toJSON(data), $firebaseUtils.makeNodeResolver(def))
         def.promise.then ->
           new Resource(ref).$loaded()
 
@@ -67,8 +69,8 @@ angular.module('angularfire-resource')
       $$updated: (snap) ->
         old = $firebaseUtils.toJSON(this)
         result = $firebaseObject::$$updated.apply(this, arguments)
-        for name, assoc of @constructor._assoc when assoc.type is 'HasOne'
-          if @["$$#{name}"]? and @[assoc.$$conf.foreignKey] != old[assoc.$$conf.foreignKey]
+        for name, assoc of @constructor._assoc
+          if assoc.type is 'HasOne' and @["$$#{name}"]? and @[assoc.$$conf.foreignKey] isnt old[assoc.$$conf.foreignKey]
             @["$$#{name}"] = null
             @["$#{name}"]()
         result
@@ -84,3 +86,6 @@ angular.module('angularfire-resource')
 
       $firebaseObject.$extend Resource
 
+      callback.call(this) if callback?
+
+      Resource
