@@ -11,64 +11,67 @@ https://fireresourcetest.firebaseapp.com
 
 Allow this kind of candy coding
 
-```coffee
+```javascript
 
 angular.module('myApp')
 
-.factory 'User', (fireResource, $firebase) ->
+  .factory('$firebase', function() {
+    return new Firebase('https://fireresourcetest.firebaseio.com/');
+  })
 
-  User = fireResource($firebase.child('users'))
-
-  User.hasMany 'messages', className: 'Message', inverseOf: 'user', (baseRef) ->
-    new (Firebase.util.Scroll)(baseRef, '$key', maxCacheSize: 10)
-
-  User
-
-.factory 'Message', (fireResource, $firebase) ->
+  .factory('User', function(FireResource, $firebase) {
+    return FireResource($firebase.child('users'))
+      .hasMany('conversations', {inverseOf: 'users'})
+  })
   
-  Message = fireResource($firebase.child('messages'))
+  .factory('Conversation', function(FireResource, $firebase) {
+    return FireResource($firebase.child('conversations'), function(){
+      this.hasMany('users', {className: "User", inverseOf: 'conversations'});
+      this.hasMany('messages', {className: "Message", inverseOf: 'conversation', storedAt: 'createdAtDesc' })
+    });
+  })
   
-  Message.belongsTo 'user', className: 'User', inverseOf: 'messages', foreignKey: 'userId'
-  
-  Message
-
-.controller 'MyController', (User, $stateParams) ->
-
-  $scope.user = User.$find($stateParams.userId) # returns an instance of User, which inherited of all $firebaseObject
-  
-  $scope.user.$messages() # returns a $firebaseArray populated of Message instances
-  
-  $scope.messagesLoaded = false
-  
-  $scope.user.$messages().$loaded().then ->
-    $scope.messagesLoaded = true
-    
-  $scope.loadMore = ->
-    $scope.user.$messages().$next(10)
-    
-  $scope.createMessage = (data) ->
-    $scope.user.$messages().$create(data).then (message) ->
-      console.log 'message instance has been saved and associated with $scope.user'
-    
+  .factory('Message', function(FireResource, $firebase) {
+    return FireResource($firebase.child('messages'), function(){
+      this.hasOne('user', { inverseOf: false });
+      this.hasOne('conversation');
+    });
+  })
 ```
 
-Maintain a deserialize database schema, with duplicated foreign keys, to allow security enforcement and easy admin queries.
+Maintain a deserialize database schema with duplicated foreign keys, to allow security enforcement and easy admin queries.
+
 To continue on the above example : 
 
 ```
 root
 |_ users
 | |_ userId1
+| | |_ conversations
+| |   |_ conversationId1: true
+| |_ userId2
+|   |_ conversations
+|     |_ conversationId1: true
+|
+|
+|_ conversations
+| |_ conversationId1
+|   |_users
+|   | |_ userId1: true
+|   | |_ userId2: true
 |   |_ messages
 |     |_ messageId1: true
-|     |_ messageId1: true
+|     |_ messageId2: true
+|
 |
 |_ messages
   |_ messageId1
   | |_ userId: userId1
+  | |_ conversationId1
   |_ messageId2
-    |_ userId: userId1
-
+    |_ userId: userId2
+    |_ conversationId1
+    
 ```
   
 ## TODO
