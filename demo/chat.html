@@ -21,15 +21,19 @@
           </span>
           <span class="glyphicon glyphicon-remove" ng-click="closeConv($event, conversation)"></span>
         </tab-heading>
-
-        <div class="filler" >
-          <div infinite-scroll='conversation.messages().$prev(2)' infinite-scroll-reverse="conversation.messages().$next(2)" infinite-scroll-disabled="!conversation._displayed" infinite-scroll-distance='3' infinite-scroll-parent="true">
-            <div class="message panel panel-default"
-                 ng-repeat="message in conversation.$messages() | orderBy:createdAt:true"
-                 ng-class="message.userId == $currentUser.$id ? 'mine' : ''" >
-              <div class="panel-heading">{{message.userId == $currentUser.$id ? 'You' : message.$user().name }} wrote</div>
-              <div class="panel-body">{{message.content}}</div>
+        <!--<p ng-show="loading">loading</p>-->
+        <div class="filler" z-infinite-scroll="loadMore(conversation)" inverse="true" time-threshold="1000">
+          <div class="message panel panel-default"
+               ng-repeat="message in conversation.$messages() | orderBy:createdAt:true"
+               scroll-parent-to-last-element
+               ng-if="message.$$loaded"
+               ng-class="message.userId == $currentUser.$id ? 'mine' : ''" >
+            <div class="panel-heading">
+              {{message.userId == $currentUser.$id ? 'You' : message.$user().name }} wrote
+              <small am-time-ago="message.createdAt"></small>
+              {{message.$id}}
             </div>
+            <div class="panel-body">{{message.content}}</div>
           </div>
         </div>
 

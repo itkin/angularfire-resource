@@ -26,6 +26,8 @@
     "angular": "~1.4.4",
     "firebase": "~2.2.9",
     "angularfire": "~1.1.2",
-    "firebase-util": "~0.2.5"
+    "firebase-util": "~0.2.5",
+    "ngInfiniteScroll": "git@github.com:itkin/ngInfiniteScroll.git#master",
+    "zInfiniteScroll": "https://github.com/LightZam/zInfiniteScroll.git#~1.1.3"
   }
 }

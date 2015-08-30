@@ -2,10 +2,15 @@ angular.module('myApp', [
     'ui.router',
     'ngCookies',
     'ui.bootstrap',
-    'infinite-scroll',
+    'zInfiniteScroll',
     'firebase',
-    'angularfire-resource'
+    'angularfire-resource',
+    'angularMoment'
   ])
+  .constant('angularMomentConfig', {
+    //preprocess: 'unix', // optional
+    timezone: 'Europe/London' // optional
+  })
   .factory('$firebase', function() {
     return new Firebase('https://fireresourcetest.firebaseio.com/');
     //return new Firebase('ws://127.0.1:5000');
@@ -20,7 +25,9 @@ angular.module('myApp', [
     return FireResource($firebase.child('conversations'), function(){
       this.hasMany('users', {className: "User", inverseOf: 'conversations'});
       this.hasMany('messages', {className: "Message", inverseOf: 'conversation', storedAt: 'createdAtDesc' }, function(baseRef){
-        return new Firebase.util.Scroll(baseRef, '$value')
+        var ref = new Firebase.util.Scroll(baseRef, '$value')
+        ref.scroll.next(5)
+        return ref
       });
       this.hasMany('activeAtUsers', {className: 'User', inverseOf: 'activeConversations' })
       this.hasMany('displayedAtUsers', {className: 'User', inverseOf: 'displayedConversation' });
@@ -153,6 +160,17 @@ angular.module('myApp', [
       }
     }
   })
+  .directive('scrollParentToLastElement', function($timeout){
+    return {
+      link: function($scope, element, attrs){
+        if ($scope.$last){
+          $timeout(function(){
+            $(element).parent().scrollTop($(element).parent()[0].scrollHeight);
+          }, 100);
+        }
+      }
+    }
+  })
   .controller('ChatController', function($scope, $filter, $state, $timeout, $firebase, $q, User, Conversation, $window, $timeout, $firebaseArray, $currentUser) {
 
     $scope.users = User.$query(function(baseRef){
@@ -167,20 +185,26 @@ angular.module('myApp', [
       $currentUser.$displayedConversation().$messages().$create(angular.extend({},$scope.newMessage, {userId: $currentUser.$id}))
         .then(function(message){
           $scope.newMessage = {};
-          //message.$setUser($currentUser)
         })
     };
 
     $scope.selectConversation = function(conversation){
-      $currentUser.$setDisplayedConversation(conversation)
-      conversation.$messages().$next(5)
+      $currentUser.$setDisplayedConversation(conversation);
+      //if(!conversation.$$messages){
+      //  conversation.$messages().$next(5);
+      //}
+    };
+
+    $scope.loadMore = function(conversation){
+      return function(){
+        return conversation.$messages().$next(5)
+      }
     };
 
     $scope.closeConv = function($event, conv){
       $currentUser.$activeConversations().$remove(conv);
       return false
     };
-    $currentUser.$conversations();
 
     $scope.talkTo = function(user) {
       $currentUser.$conversations().$loaded()
@@ -202,7 +226,7 @@ angular.module('myApp', [
           }
         })
         .then(function (conversation) {
-          user.$activeConversations().$add(conversation)
+          user.$activeConversations().$add(conversation);
           return $currentUser.$activeConversations().$add(conversation)
         })
         .then(function (conversation) {
@@ -210,12 +234,13 @@ angular.module('myApp', [
         })
     }
   })
-  .run(function($window, $timeout, $rootScope, $firebase, $firebaseObject, $firebaseArray, User,  $q) {
+  .run(function($window, $timeout, $rootScope, $firebase, $firebaseObject, $firebaseArray, User,  $q, Message) {
     $window.$timeout = $timeout
     $window.$firebase = $firebase;
     $window.$firebaseObject = $firebaseObject;
     $window.$firebaseArray = $firebaseArray;
     $window.User = User;
+    $window.Message = Message
     //$window.user = User.$find('-JxTmHHaQKFF4pubQDiB');
     //$window.user = User.$find('-JxQLz-l-U_z4d2hy4Z9');
     $window.$q= $q

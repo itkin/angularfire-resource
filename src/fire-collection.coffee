@@ -1,7 +1,7 @@
 
 angular.module('angularfire-resource')
 
-.factory 'Collection', ($firebaseArray) ->
+.factory 'Collection', ($firebaseArray, $firebaseUtils, $timeout) ->
   class Collection
     constructor: (targetClass, ref) ->
       @$$targetClass = targetClass
@@ -9,23 +9,41 @@ angular.module('angularfire-resource')
 
       return $firebaseArray.call this, ref
 
+    $loaded: ->
+      $firebaseArray::$loaded.apply(this, arguments).then =>
+        itemsPromises = []
+        itemsPromises.push item.$loaded() for item in @$list
+        $firebaseUtils.allPromises(itemsPromises)
+
     # retrieve the associated resource
     $$added: (snap) ->
       result = $firebaseArray::$$added.apply(this, arguments)
       if result
-        @$$targetClass.$find(snap.key()).$loaded()
+        @$$targetClass.$find(snap.key()) #.$loaded()
       else
         result
 
+    #no update (they are done via the instance)
+    $$updated: (snap) ->
+      false
+
     $next: (pageSize) ->
       if @$ref().scroll
-        @$ref().scroll.next(pageSize)
+        def = $firebaseUtils.defer()
+        if @$ref().scroll.hasNext()
+          @$ref().once 'value', =>
+            @$loaded().then -> def.resolve()
+          @$ref().scroll.next(pageSize)
+        else
+          def.resolve()
+        def.promise
       else
         false
 
     $prev: (pageSize) ->
       if @$ref().scroll
         @$ref().scroll.prev(pageSize)
+        @$loaded()
       else
         false
 
@@ -77,6 +95,6 @@ angular.module('angularfire-resource')
 #      $firebaseArray::$destroy.apply(this, arguments)
 
     $$notify: ->
-      console.log @$$association.name.camelize(true), @$parentRecord.$id, @$$association.name, arguments[0], arguments[1]
+      console.log @$parentRecord.constructor.$name.camelize(true), @$parentRecord.$id, @$$association.name, arguments[0], arguments[1]
       $firebaseArray::$$notify.apply this, arguments
 

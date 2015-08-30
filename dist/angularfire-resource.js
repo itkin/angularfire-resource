@@ -234,7 +234,7 @@ angular.module('angularfire-resource').factory('AssociationFactory', function($i
 var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
   hasProp = {}.hasOwnProperty;
 
-angular.module('angularfire-resource').factory('Collection', function($firebaseArray) {
+angular.module('angularfire-resource').factory('Collection', function($firebaseArray, $firebaseUtils, $timeout) {
   var Collection;
   Collection = (function() {
     function Collection(targetClass, ref) {
@@ -243,19 +243,52 @@ angular.module('angularfire-resource').factory('Collection', function($firebaseA
       return $firebaseArray.call(this, ref);
     }
 
+    Collection.prototype.$loaded = function() {
+      return $firebaseArray.prototype.$loaded.apply(this, arguments).then((function(_this) {
+        return function() {
+          var i, item, itemsPromises, len, ref1;
+          itemsPromises = [];
+          ref1 = _this.$list;
+          for (i = 0, len = ref1.length; i < len; i++) {
+            item = ref1[i];
+            itemsPromises.push(item.$loaded());
+          }
+          return $firebaseUtils.allPromises(itemsPromises);
+        };
+      })(this));
+    };
+
     Collection.prototype.$$added = function(snap) {
       var result;
       result = $firebaseArray.prototype.$$added.apply(this, arguments);
       if (result) {
-        return this.$$targetClass.$find(snap.key()).$loaded();
+        return this.$$targetClass.$find(snap.key());
       } else {
         return result;
       }
     };
 
+    Collection.prototype.$$updated = function(snap) {
+      return false;
+    };
+
     Collection.prototype.$next = function(pageSize) {
+      var def;
       if (this.$ref().scroll) {
-        return this.$ref().scroll.next(pageSize);
+        def = $firebaseUtils.defer();
+        if (this.$ref().scroll.hasNext()) {
+          this.$ref().once('value', (function(_this) {
+            return function() {
+              return _this.$loaded().then(function() {
+                return def.resolve();
+              });
+            };
+          })(this));
+          this.$ref().scroll.next(pageSize);
+        } else {
+          def.resolve();
+        }
+        return def.promise;
       } else {
         return false;
       }
@@ -263,7 +296,8 @@ angular.module('angularfire-resource').factory('Collection', function($firebaseA
 
     Collection.prototype.$prev = function(pageSize) {
       if (this.$ref().scroll) {
-        return this.$ref().scroll.prev(pageSize);
+        this.$ref().scroll.prev(pageSize);
+        return this.$loaded();
       } else {
         return false;
       }
@@ -335,7 +369,7 @@ angular.module('angularfire-resource').factory('Collection', function($firebaseA
     };
 
     AssociationCollection.prototype.$$notify = function() {
-      console.log(this.$$association.name.camelize(true), this.$parentRecord.$id, this.$$association.name, arguments[0], arguments[1]);
+      console.log(this.$parentRecord.constructor.$name.camelize(true), this.$parentRecord.$id, this.$$association.name, arguments[0], arguments[1]);
       return $firebaseArray.prototype.$$notify.apply(this, arguments);
     };
 
@@ -359,12 +393,14 @@ angular.module('angularfire-resource').factory('FireResource', function($firebas
 
       map = {};
 
-      Resource.map = map;
-
       function Resource(ref) {
         map[ref.key()] = this;
         $firebaseObject.call(this, ref);
-        this;
+        this.$loaded().then((function(_this) {
+          return function() {
+            return _this.$$loaded = true;
+          };
+        })(this));
       }
 
       Resource._assoc = {};
