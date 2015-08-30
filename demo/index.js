@@ -32,8 +32,6 @@ angular.module('myApp', [
       this.hasMany('activeAtUsers', {className: 'User', inverseOf: 'activeConversations' })
       this.hasMany('displayedAtUsers', {className: 'User', inverseOf: 'displayedConversation' });
     });
-
-
   })
   .factory('Message', function(FireResource, $firebase) {
     var Message = FireResource($firebase.child('messages'), function(){
@@ -108,9 +106,8 @@ angular.module('myApp', [
             var amOnline = $firebase.child('.info/connected');
             amOnline.on('value', function(snap){
               if (snap.val()){
-                $currentUser.$ref().onDisconnect().update({presence: false});
-                $currentUser.presence = true;
-                $currentUser.$save();
+                $currentUser.$ref().onDisconnect().update({presence: 0, disconnectedAt: Firebase.ServerValue.TIMESTAMP});
+                $currentUser.$ref().update({presence: -1});
               }
             });
           }
@@ -140,26 +137,6 @@ angular.module('myApp', [
     });
 
   })
-  .directive('fillWindow', function($rootScope, $window){
-    $rootScope.windowHeight = $window.innerHeight;
-    $($window).resize(function(){
-      $rootScope.$apply(function(){
-        $rootScope.windowHeight = $window.innerHeight
-      });
-    });
-    return {
-      restrict: 'A',
-      link: function($scope, element, attrs){
-        var $elt = $(element);
-        $scope.$watch('windowHeight', function(newVal, old){
-          var val = newVal - $elt.offset().top + $scope.$eval(new Function('return '+attrs.fillWindow));
-          if (val > 0){
-            element.css({height: val+ 'px'});
-          }
-        })
-      }
-    }
-  })
   .directive('scrollParentToLastElement', function($timeout){
     return {
       link: function($scope, element, attrs){
@@ -177,28 +154,23 @@ angular.module('myApp', [
       return new Firebase.util.Scroll(baseRef, 'presence')
     });
 
-    $scope.users.$next(100);
-
-    $scope.newMessage = {};
-
-    $scope.sendMessage = function(){
-      $currentUser.$displayedConversation().$messages().$create(angular.extend({},$scope.newMessage, {userId: $currentUser.$id}))
-        .then(function(message){
-          $scope.newMessage = {};
-        })
+    $scope.loadUsers = function(){
+      return function(){
+        $scope.users.$next(10)
+      }
     };
-
-    $scope.selectConversation = function(conversation){
-      $currentUser.$setDisplayedConversation(conversation);
-      //if(!conversation.$$messages){
-      //  conversation.$messages().$next(5);
-      //}
-    };
-
     $scope.loadMore = function(conversation){
       return function(){
         return conversation.$messages().$next(5)
       }
+    };
+    $scope.sendMessage = function(){
+      $currentUser.$displayedConversation().$messages().$create(angular.extend({},$scope.newMessage, {userId: $currentUser.$id}))
+      $scope.newMessage = {};
+    };
+
+    $scope.selectConversation = function(conversation){
+      $currentUser.$setDisplayedConversation(conversation);
     };
 
     $scope.closeConv = function($event, conv){
@@ -207,32 +179,39 @@ angular.module('myApp', [
     };
 
     $scope.talkTo = function(user) {
+      if ($currentUser.$id == user.$id){
+        return
+      }
       $currentUser.$conversations().$loaded()
+
         .then(function (conversations) {
           return _.find(conversations, function (conv) {
             return (conv.users || [])[user.$id] ? true : false
+          }) || $q.reject()
+        })
+        .catch(function (conv) {
+          return $currentUser.$conversations().$create().then(function (conversation) {
+            return conversation.$users().$add(User.$find(user.$id)).then(function () {
+              return conversation
+            });
           })
         })
-        .then(function (conv) {
-          if (conv) {
-            return conv
-          }
-          else {
-            return $currentUser.$conversations().$create().then(function (conversation) {
-              return conversation.$users().$add(User.$find(user.$id)).then(function () {
-                return conversation
-              });
-            })
-          }
-        })
         .then(function (conversation) {
-          user.$activeConversations().$add(conversation);
           return $currentUser.$activeConversations().$add(conversation)
         })
         .then(function (conversation) {
           conversation.$$displayed = true;
+          user.$activeConversations().$add(conversation);
         })
+    };
+
+    if ($currentUser.$displayedConversation()){
+      $currentUser.$displayedConversation().$$displayed = true;
     }
+    $scope.users.$next(10);
+    $scope.newMessage = {};
+
+
   })
   .run(function($window, $timeout, $rootScope, $firebase, $firebaseObject, $firebaseArray, User,  $q, Message) {
     $window.$timeout = $timeout

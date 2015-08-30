@@ -24,21 +24,23 @@ tabset{
 
 .tab-content{
   margin-top: 20px;
-  padding-top: 20px;
 }
-.tab-content .filler{
-  height: 200px;
+.filler{
+  height: 300px;
+  padding-right: 20px;
   overflow-y: auto;
+  margin-bottom: 20px;
 }
 /* messages */
-.message{
-  margin-right: 30%;
-}
-.message.mine{
-  margin-right: 0;
-  margin-left: 30%;
-}
+/*.message{*/
+  /*margin-right: 30%;*/
+/*}*/
+/*.message.mine{*/
+  /*margin-right: 0;*/
+  /*margin-left: 30%;*/
+/*}*/
 /* message form */
+
 #new-message-form .input-group-addon{
   background: white;
 }
