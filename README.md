@@ -1,5 +1,5 @@
 # angularfire-resource
-Resource factories built on top of AngularFire
+Resource factory built on top of AngularFire
 
 > This library is under active development and currently not production ready yet
 
