@@ -73,7 +73,45 @@ root
     |_ conversationId1
     
 ```
-  
+## API
+
+FireResources's instance are basically extended $firebaseObject ones, refer to the angularfire [documentation](https://www.firebase.com/docs/web/libraries/angular/api.html)
+
+#FireResource
+Set your class up
+params : 
+- firebase reference, 
+- options 
+- callback function called in the context of the defined resource (to add methods, relations, or override stuff)
+
+#Resource.HasMany
+Set a relation one to many
+params :
+- name : name of the relation
+- options
+  - `className` : the targetted class name, default is `name.replace(/s$/,'').camelize(true)`
+  - `inverseOf`: the inverse relation, default is `Resource.$ref().key().replace(/s$/,'')`, `false` not to maintain foreign key on the related model
+  - `storedAt`: string, object, array of function specifiying how the related instance will be stored in the parent model. Per default it will maintain a set of childKey: true  
+
+Defines the following methods into the parent class : 
+- resource.$name() : get the association array
+
+#Resource.HasOne
+Set a relation one to one or one to many
+params :
+- name : name of the relation
+- options
+  - `className` : the targetted class name, default is `name.replace(/s$/,'').camelize(true)`
+  - `inverseOf`: the inverse relation, default is `Resource.$ref().key().replace(/s$/,'')`, `false` not to maintain foreign key on the related model
+  - `foreignKey`: specify the property name where the related instance $id will be stored on the Resource instance, default is `name.replace(/s$/,'')+'Id'`
+
+Defines the following function on the parent class prototype : 
+- $#{name} : get the associated Resource
+- $set#{name} : set the associated Resource
+
+
+[to be continued]
+
 ## TODO
 
 - Close the enhancement issues
