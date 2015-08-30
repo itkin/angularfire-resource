@@ -67,10 +67,10 @@ root
 |_ messages
   |_ messageId1
   | |_ userId: userId1
-  | |_ conversationId1
+  | |_ conversationId: conversationId1
   |_ messageId2
     |_ userId: userId2
-    |_ conversationId1
+    |_ conversationId: conversationId1
     
 ```
 ## API
