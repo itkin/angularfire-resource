@@ -41,7 +41,7 @@ gulp.task('html', function(){
 
 gulp.task('watch', function () {
   gulp.watch(['demo/*'], ['html']);
-  //gulp.watch('src/**/*.coffee', ['coffee']);
+  gulp.watch('src/**/*.coffee', ['coffee']);
 });
 
 gulp.task('connect', function() {

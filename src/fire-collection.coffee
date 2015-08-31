@@ -74,8 +74,8 @@ angular.module('angularfire-resource')
     $add: (resource) ->
       @$$association.add(resource, to: @$parentRecord)
         .then (resource) =>
-          @$$association.reverseAssociation().add(@$parentRecord, to: resource)
-            .then -> resource
+          @$$association.reverseAssociation().add(@$parentRecord, to: resource) if @$$association.reverseAssociation()
+        .then -> resource
 
 
 

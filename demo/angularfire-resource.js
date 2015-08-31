@@ -340,13 +340,15 @@ angular.module('angularfire-resource').factory('Collection', function($firebaseA
         to: this.$parentRecord
       }).then((function(_this) {
         return function(resource) {
-          return _this.$$association.reverseAssociation().add(_this.$parentRecord, {
-            to: resource
-          }).then(function() {
-            return resource;
-          });
+          if (_this.$$association.reverseAssociation()) {
+            return _this.$$association.reverseAssociation().add(_this.$parentRecord, {
+              to: resource
+            });
+          }
         };
-      })(this));
+      })(this)).then(function() {
+        return resource;
+      });
     };
 
     AssociationCollection.prototype.$remove = function(resource) {

@@ -15,20 +15,20 @@
           <span class="glyphicon glyphicon-remove" ng-click="closeConv($event, conversation)"></span>
         </tab-heading>
         <!--<p ng-show="loading">loading</p>-->
-        <div class="filler" z-infinite-scroll="loadMore(conversation)" inverse="true">
+        <div class="filler" scroller z-infinite-scroll="loadMore(conversation)" inverse="true">
 
           <blockquote class="message"
-               ng-class="message.userId == $currentUser.$id ? 'blockquote-reverse' : ''"
-               ng-repeat="message in conversation.$$messages | orderBy:createdAt:true"
-               scroll-parent-to-last-element
-               ng-if="message.$$loaded">
+            ng-class="message.userId == $currentUser.$id ? 'blockquote-reverse' : ''"
+            ng-repeat="message in conversation.$$messages | orderBy:createdAt:true"
+            message="message" user="$currentUser" last="$last"
+            ng-if="message.$$loaded">
 
             <p>{{message.content}}</p>
             <footer>
               {{message.userId == $currentUser.$id ? 'You' : message.$user().name }} wrote
               <span am-time-ago="message.createdAt"></span>
+              <span tooltip-append-to-body="true" tooltip="{{user.name}} red it {{message.$redAtBy(user) | amTimeAgo }}" class="glyphicon glyphicon-ok" ng-repeat="user in conversation.$users() | filter:{$id: '!'+$currentUser.$id}:true" ng-if="message.$redAtBy(user)"></span >
             </footer>
-
           </blockquote>
 
         </div>

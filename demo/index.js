@@ -32,7 +32,11 @@ angular.module('myApp', [
   .factory('Message', function(FireResource, $firebase) {
     var Message = FireResource($firebase.child('messages'), function(){
       this.hasOne('user', { inverseOf: false });
+      this.hasMany('redByUsers', {className: 'User', inverseOf: false, storedAt: function(){return Firebase.ServerValue.TIMESTAMP}} )
       this.hasOne('conversation');
+      this.prototype.$redAtBy = function(user){
+        return (this.redByUsers||{})[user.$id]
+      }
     });
     var originalCreate = Message.$create;
     Message.$create = function(data){
@@ -136,15 +140,73 @@ angular.module('myApp', [
   })
   .directive('scrollParentToLastElement', function($timeout){
     return {
+      scope: true,
       link: function($scope, element, attrs){
         if ($scope.$last){
-          $timeout(function(){
-            $(element).parent().scrollTop($(element).parent()[0].scrollHeight);
-          }, 100);
+          $scope.$emit('child-appended')
         }
       }
     }
   })
+  .directive('scroller', function($timeout){
+    return function($scope, element){
+      function broadCastScrollEvent(){
+        $scope.$broadcast('scroll', element[0].scrollTop, element[0].clientHeight)
+      }
+      $scope.$on('child-appended', function(){
+        $timeout(function(){
+          element[0].scrollTop = element[0].scrollHeight;
+          //broadCastScrollEvent()
+        }, 100);
+      });
+      $(element).scroll(function(){
+        $scope.$evalAsync(function(scope){
+          broadCastScrollEvent()
+        })
+      });
+    }
+  })
+  .directive('message', function($timeout){
+    return {
+      scope:{
+        message: '=',
+        user: '=',
+        last: '='
+      },
+      link: function($scope, element, attrs, ngRepeat){
+        // ask scroller directive to scroll down
+        if ($scope.last){
+          $scope.$emit('child-appended')
+        }
+        // message is not read yet
+        if ($scope.message.userId != $scope.user.$id && !$scope.message.$redAtBy($scope.user) ){
+          var $elt = $(element);
+          var height = $elt.height();
+          var querying = false;
+
+          // set the message as read displayed in the client view
+          var process = function(event, scrollTop, clientHeight){
+            if (
+              !querying &&
+              $elt.position().top + height < scrollTop + clientHeight
+            ){
+              querying = true;
+              $scope.message.$redByUsers().$add($scope.user)
+              .then(function(){
+                off()
+              })
+              .catch(function(){
+                querying = false
+              })
+            }
+          };
+
+          var off = $scope.$on('scroll', process);
+        }
+      }
+    }
+  })
+
   .controller('ChatController', function($scope, $filter, $state, $timeout, $firebase, $q, User, Conversation, $window, $timeout, $firebaseArray, $currentUser) {
 
     $scope.users = User.$query(function(baseRef){
