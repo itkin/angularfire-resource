@@ -121,6 +121,7 @@ angular.module('myApp', [
     $scope.$currentUser = $currentUser;
 
     $scope.logout = function(){
+      $currentUser.$update({presence: 0});
       $firebase.unauth();
       $cookies.remove('authToken');
       $state.go('chat', {}, {reload: true});
@@ -211,8 +212,7 @@ angular.module('myApp', [
     $scope.users.$next(10);
     $scope.newMessage = {};
     $currentUser.$conversations()
-
-  })
+  });
   //.run(function($window, $timeout, $rootScope, $firebase, $firebaseObject, $firebaseArray, User,  $q, Message) {
   //  $window.$timeout = $timeout
   //  $window.$firebase = $firebase;
