@@ -45,7 +45,8 @@ angular.module('angularfire-resource')
 
     self = this
 
-    Resource::[publicKey name] = (updateRef) ->
+    Resource::[publicKey name] = (associationOptions={}, updateRef) ->
+      associationOptions
       if updateRef or not @[privateKey name]
         @[privateKey name].$destroy() if @[privateKey name]
         @[privateKey name] = new AssociationCollection this, self, opts, (updateRef or cb)

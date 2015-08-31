@@ -280,13 +280,13 @@ angular.module('angularfire-resource').factory('Collection', function($firebaseA
           this.$ref().once('value', (function(_this) {
             return function() {
               return _this.$loaded().then(function() {
-                return def.resolve();
+                return def.resolve(_this);
               });
             };
           })(this));
           this.$ref().scroll.next(pageSize);
         } else {
-          def.resolve();
+          def.resolve(this);
         }
         return def.promise;
       } else {
@@ -395,14 +395,10 @@ angular.module('angularfire-resource').factory('FireResource', function($firebas
 
       map = {};
 
-      function Resource(ref) {
+      function Resource(ref, opts) {
         map[ref.key()] = this;
         $firebaseObject.call(this, ref);
-        this.$loaded().then((function(_this) {
-          return function() {
-            return _this.$$loaded = true;
-          };
-        })(this));
+        this.$loaded();
       }
 
       Resource._assoc = {};
@@ -464,6 +460,29 @@ angular.module('angularfire-resource').factory('FireResource', function($firebas
           opts = {};
         }
         this._assoc[name] = new AssociationFactory.HasOne(this, name, opts);
+        return this;
+      };
+
+      Resource.prototype.$loaded = function() {
+        return firebaseObject.prototype.loaded.apply(this, arguments).then((function(_this) {
+          return function() {
+            var i, len, name, promises;
+            promises = [];
+            for (i = 0, len = associations.length; i < len; i++) {
+              name = associations[i];
+              promises.push(_this["" + name]().$loaded());
+            }
+            return $firebaseUtils.allPromises(promises);
+          };
+        })(this)).then((function(_this) {
+          return function() {
+            return _this.$$loaded = true;
+          };
+        })(this));
+      };
+
+      Resource.prototype.$includes = function(associations) {
+        this.$$includes = associations;
         return this;
       };
 

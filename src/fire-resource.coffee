@@ -10,13 +10,13 @@ angular.module('angularfire-resource')
     class Resource
 
       map = {}
-      constructor: (ref) ->
+      constructor: (ref, opts) ->
 
         map[ref.key()]= this
 
         $firebaseObject.call this, ref
 
-        @$loaded().then => @$$loaded = true
+        @$loaded()
 
 
       @_assoc: {}
@@ -41,11 +41,12 @@ angular.module('angularfire-resource')
         def.promise.then ->
           new Resource(ref).$loaded()
 
-      @$find: (key) ->
+      @$find: (key, opts) ->
         if map[key]
-          map[key]
+          inst = map[key]
         else
-          new Resource Resource.$ref().child(key)
+          inst = new Resource Resource.$ref().child(key)
+          inst =
 
       @hasMany: (name, opts={}, cb)->
         @_assoc[name] = new AssociationFactory.HasMany(this, name, opts, cb)
@@ -54,6 +55,21 @@ angular.module('angularfire-resource')
       @hasOne: (name, opts = {}) ->
         @_assoc[name] = new AssociationFactory.HasOne(this, name, opts)
         this
+
+      $loaded: ->
+        firebaseObject::loaded.apply(this, arguments)
+        .then =>
+          promises = []
+          for name, name of @$$includes
+            promises.push @["$#{name}"](opts).$loaded()
+          $firebaseUtils.allPromises(promises)
+        .then =>
+          @$$loaded = true
+
+      $includes: (associationsHash) ->
+        angular.extend(@$$includes, associationsHash)
+        @$loaded()
+
 
       $destroy: ->
         for name, assoc of @constructor._assoc

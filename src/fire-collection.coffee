@@ -32,10 +32,10 @@ angular.module('angularfire-resource')
         def = $firebaseUtils.defer()
         if @$ref().scroll.hasNext()
           @$ref().once 'value', =>
-            @$loaded().then -> def.resolve()
+            @$loaded().then => def.resolve(this)
           @$ref().scroll.next(pageSize)
         else
-          def.resolve()
+          def.resolve(this)
         def.promise
       else
         false
@@ -57,6 +57,7 @@ angular.module('angularfire-resource')
       @$$options = opts
       @$$targetClass = $injector.get @$$options.className
       @$$association = association
+      @$$includes = opts.includes
       
       @$parentRecord = parentRecord
 
