@@ -19,9 +19,13 @@ angular.module('myApp', [
       this.hasMany('activeConversations', {className: 'Conversation', inverseOf: 'activeAtUsers' });
       this.hasOne('displayedConversation', {className: 'Conversation', inverseOf: 'displayedAtUsers', foreignKey: 'displayedConversationId' });
       this.prototype.$conversationWith = function(user){
-        return _.find(this.$conversations(), function (conv) {
-          return (conv.users || [])[user.$id] ? true : false
-        });
+        if (!this.$$conversations){
+          throw '$conversationWith bad call: messages need to be preloaded first'
+        } else {
+          return _.find(this.$conversations(), function (conv) {
+            return (conv.users || [])[user.$id] ? true : false
+          });
+        }
       }
     })
   })
@@ -127,7 +131,13 @@ angular.module('myApp', [
               }
             });
           },
-          currentUserConversations: function($currentUser){
+          preloadConversations: function($currentUser, Conversation){
+            //todo developp the include option to preload stuff
+            $currentUser.$conversations().$watch(function(opts){
+              if (opts.event == 'child_added'){
+                Conversation.$find(opts.key).$messages().$next(5);
+              }
+            });
             $currentUser.$conversations().$loaded()
           }
         }
@@ -139,7 +149,7 @@ angular.module('myApp', [
         controller: 'ChatController'
       })
   })
-  .controller('MainController', function($scope, $state, $cookies, $firebase, $currentUser, $presenceCheck, $window){
+  .controller('MainController', function($scope, $state, $cookies, $firebase, $currentUser, $presenceCheck, $window, preloadConversations){
     $window.user = $currentUser;
     $scope.$currentUser = $currentUser;
 
@@ -196,7 +206,8 @@ angular.module('myApp', [
       link: function($scope, element, attrs, ngRepeat){
         // ask scroller directive to scroll down
         if ($scope.last){
-          $scope.$emit('child-appended')
+          $scope.$emit('child-appended', $scope.conversation.$id)
+
         }
         // message is not read yet
         if ($scope.message.userId != $scope.user.$id && !$scope.message.$redAtBy($scope.user) ){
@@ -206,53 +217,85 @@ angular.module('myApp', [
 
           // set the message as read displayed in the client view
           var process = function(event, scrollTop, clientHeight){
-            if (
-              !querying &&
-              $scope.conversation.$$displayed &&
-              $elt.position().top + height < scrollTop + clientHeight
-            ){
-              querying = true;
-              $scope.message.$redByUsers().$add($scope.user)
-              .then(function(){
-                off()
-              })
-              .catch(function(){
-                querying = false
-              })
-            }
-          };
-          $scope.$on('tab.active', process);
-          var off = $scope.$on('scroll', process);
+            $timeout(function(){
+              if (
+                !querying &&
+                $scope.conversation.$$displayed &&
+                $elt.position().top + (height / 2) < $elt.parent()[0].scrollTop + $elt.parent()[0].clientHeight
+              ){
+                querying = true;
+                $scope.message.$redByUsers().$add($scope.user)
+                  .then(function(){
+                    offTabActive();
+                    offScroll();
+                    $scope.$emit('message-red', $scope.conversation.$id);
+                  })
+                  .catch(function(){
+                    querying = false
+                  })
+              }
+            });
+          }
+
+          var offTabActive = $scope.$on('tab.active', process);
+          var offScroll = $scope.$on('scroll', process);
         }
       }
     }
   })
-  .directive('unreadMessages', function(){
+  .directive('unreadMessages', function($timeout){
     return {
       scope:{
         conversation: '=',
-        user: '='
+        user: '=',
       },
       restrict: 'AE',
-      template: '<span class="badge"><span class="glyphicon glyphicon-envelope"></span>{{$scope.unreadMessages}}</span>',
+      template: '<span class="label label-danger" ng-if="unreadMessages"><span>{{unreadMessages}}</span> <span class="glyphicon glyphicon-envelope"></span></span>',
       link: function($scope, element, attrs){
         $scope.unreadMessages = 0;
+        var timeout = null;
         if ($scope.conversation){
-          $scope.conversation.$messages().$next(5).then(function(){
-            var nb = $scope.conversation.$userUnreadMessages($scope.user).length
-            $scope.unreadMessages = nb >= 5 ? '+'+nb : nb
-          })
+          $scope.$on('recalculate-unread-messages', function(event, conversationId){
+            if (conversationId == $scope.conversation.$id) {
+              var nb = $scope.conversation.$userUnreadMessages($scope.user).length;
+              if (nb > 0){
+                $timeout.cancel(timeout);
+                timeout = $timeout(function(){
+                  $scope.unreadMessages = nb >= 5 ? '+' + nb : nb
+                },500)
+              } else{
+                $timeout.cancel(timeout);
+                $scope.unreadMessages = nb >= 5 ? '+' + nb : nb
+              }
+            }
+          });
         }
-        //$scope.conversation
-
       }
     }
+  })
+  .directive('autoFocus', function($timeout){
+    return function($scope, element){
+      $scope.$on('tab.active', function(){
+        $timeout(function(){
+          element[0].focus()
+        });
+      })
+    }
+  })
+  .run(function($rootScope){
+    $rootScope.$on('message-red', function(event, conversationId){
+      $rootScope.$broadcast('recalculate-unread-messages', conversationId)
+    });
+    $rootScope.$on('child-appended', function(event, conversationId){
+      $rootScope.$broadcast('recalculate-unread-messages', conversationId)
+    });
+
   })
   .controller('ChatController', function($scope, $filter, $state, $timeout, $firebase, $q, User, Conversation, $window, $timeout, $firebaseArray, $currentUser) {
 
     $scope.users = User.$query(function(baseRef){
       return new Firebase.util.Scroll(baseRef, 'presence')
-    });
+    })
 
     $scope.loadUsers = function(){
       return function(){
@@ -270,9 +313,9 @@ angular.module('myApp', [
     };
 
     $scope.selectConversation = function(conversation){
-      if (!conversation.$$messages){
-        conversation.$messages().$next(5)
-      }
+      //if (!conversation.$$messages){
+      //  conversation.$messages().$next(5)
+      //}
       $currentUser.$setDisplayedConversation(conversation);
     };
 
@@ -313,7 +356,9 @@ angular.module('myApp', [
     if ($currentUser.$displayedConversation()){
       $currentUser.$displayedConversation().$$displayed = true;
     }
-    $scope.users.$next(10);
+
+    //todo : include
+    $scope.users.$next(10)
     $scope.newMessage = {};
 
   })
