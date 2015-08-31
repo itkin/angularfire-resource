@@ -10,9 +10,12 @@
 
         <tab-heading>
           <span ng-repeat="user in conversation.$users() | filter : { $id : '!'+ $currentUser.$id } ">
-            {{user.name}}<span ng-if="$even && !$last">,</span>
+            <span class="label label-success" ng-if="user.presence">{{user.name}}</span>
+            <span class="label label-default" ng-if="!user.presence">{{user.name}}</span>
+            <span ng-if="$even && !$last">,</span>
           </span>
-          <span class="glyphicon glyphicon-remove" ng-click="closeConv($event, conversation)"></span>
+          <!--<small class="close">x</small>-->
+          <span class="close-tab"><span class="glyphicon glyphicon-remove" ng-click="closeConv($event, conversation)"></span></span>
         </tab-heading>
         <!--<p ng-show="loading">loading</p>-->
         <div class="filler" scroller z-infinite-scroll="loadMore(conversation)" inverse="true">
@@ -20,7 +23,7 @@
           <blockquote class="message"
             ng-class="message.userId == $currentUser.$id ? 'blockquote-reverse' : ''"
             ng-repeat="message in conversation.$$messages | orderBy:createdAt:true"
-            message="message" user="$currentUser" last="$last"
+            message="message" user="$currentUser" last="$last" conversation="conversation"
             ng-if="message.$$loaded">
 
             <p>{{message.content}}</p>
@@ -65,10 +68,12 @@
          ng-click="talkTo(user)">
         <span class="glyphicon glyphicon-user"></span>
         <span>{{user.name}}</span>
+        <!--ng-if="unreadMessages"-->
         <span ng-if="$currentUser.$id == user.$id">(me)</span>
         <span class="label label-success" ng-if="user.presence">online</span>
         <span class="label label-default" ng-if="!user.presence">offline</span>
       </a>
+      <span unread-messages user="$currentUser" conversation="$currentUser.$conversationWith(user)"></span>
     </div>
   </div>
 </div>

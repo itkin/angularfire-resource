@@ -14,10 +14,16 @@ angular.module('myApp', [
     return new Firebase('https://fireresourcetest.firebaseio.com/');
   })
   .factory('User', function(FireResource, $firebase) {
-    return FireResource($firebase.child('users'))
-      .hasMany('conversations', {inverseOf: 'users'})
-      .hasMany('activeConversations', {className: 'Conversation', inverseOf: 'activeAtUsers' })
-      .hasOne('displayedConversation', {className: 'Conversation', inverseOf: 'displayedAtUsers', foreignKey: 'displayedConversationId' })
+    return FireResource($firebase.child('users'), function(){
+      this.hasMany('conversations', {inverseOf: 'users'});
+      this.hasMany('activeConversations', {className: 'Conversation', inverseOf: 'activeAtUsers' });
+      this.hasOne('displayedConversation', {className: 'Conversation', inverseOf: 'displayedAtUsers', foreignKey: 'displayedConversationId' });
+      this.prototype.$conversationWith = function(user){
+        return _.find(this.$conversations(), function (conv) {
+          return (conv.users || [])[user.$id] ? true : false
+        });
+      }
+    })
   })
   .factory('Conversation', function(FireResource, $firebase) {
     return FireResource($firebase.child('conversations'), function(){
@@ -27,6 +33,16 @@ angular.module('myApp', [
       });
       this.hasMany('activeAtUsers', {className: 'User', inverseOf: 'activeConversations' })
       this.hasMany('displayedAtUsers', {className: 'User', inverseOf: 'displayedConversation' });
+      //fixme : messages need to be preloaded
+      this.prototype.$userUnreadMessages = function(user){
+        if (!this.$$messages){
+          throw '$userUnreadMessages bad call: messages need to be preloaded first'
+        } else{
+          return _.filter(this.$messages(), function (message) {
+            return message.userId != user.$id && !message.$redAtBy(user)
+          });
+        }
+      }
     });
   })
   .factory('Message', function(FireResource, $firebase) {
@@ -110,6 +126,9 @@ angular.module('myApp', [
                 $currentUser.$ref().update({presence: -1});
               }
             });
+          },
+          currentUserConversations: function($currentUser){
+            $currentUser.$conversations().$loaded()
           }
         }
       })
@@ -171,7 +190,8 @@ angular.module('myApp', [
       scope:{
         message: '=',
         user: '=',
-        last: '='
+        last: '=',
+        conversation: '='
       },
       link: function($scope, element, attrs, ngRepeat){
         // ask scroller directive to scroll down
@@ -188,7 +208,7 @@ angular.module('myApp', [
           var process = function(event, scrollTop, clientHeight){
             if (
               !querying &&
-              $elt.is(':visible') &&
+              $scope.conversation.$$displayed &&
               $elt.position().top + height < scrollTop + clientHeight
             ){
               querying = true;
@@ -207,7 +227,27 @@ angular.module('myApp', [
       }
     }
   })
+  .directive('unreadMessages', function(){
+    return {
+      scope:{
+        conversation: '=',
+        user: '='
+      },
+      restrict: 'AE',
+      template: '<span class="badge"><span class="glyphicon glyphicon-envelope"></span>{{$scope.unreadMessages}}</span>',
+      link: function($scope, element, attrs){
+        $scope.unreadMessages = 0;
+        if ($scope.conversation){
+          $scope.conversation.$messages().$next(5).then(function(){
+            var nb = $scope.conversation.$userUnreadMessages($scope.user).length
+            $scope.unreadMessages = nb >= 5 ? '+'+nb : nb
+          })
+        }
+        //$scope.conversation
 
+      }
+    }
+  })
   .controller('ChatController', function($scope, $filter, $state, $timeout, $firebase, $q, User, Conversation, $window, $timeout, $firebaseArray, $currentUser) {
 
     $scope.users = User.$query(function(baseRef){
@@ -245,12 +285,13 @@ angular.module('myApp', [
       if ($currentUser.$id == user.$id){
         return
       }
-      $currentUser.$conversations().$loaded()
-
-        .then(function (conversations) {
-          return _.find(conversations, function (conv) {
-            return (conv.users || [])[user.$id] ? true : false
-          }) || $q.reject()
+      $q.resolve($currentUser.$conversationWith(user))
+        .then(function (conversation) {
+          if (conversation){
+            return conversation
+          } else {
+            return $q.reject() ;
+          }
         })
         .catch(function () {
           return $currentUser.$conversations().$create().then(function (conversation) {
@@ -274,16 +315,18 @@ angular.module('myApp', [
     }
     $scope.users.$next(10);
     $scope.newMessage = {};
-    $currentUser.$conversations()
+
+  })
+  .run(function($window, $timeout, $rootScope, $firebase, $firebaseObject, $firebaseArray, User,  $q, Message, Conversation) {
+    $window.$timeout = $timeout
+    $window.$firebase = $firebase;
+    $window.$firebaseObject = $firebaseObject;
+    $window.$firebaseArray = $firebaseArray;
+    $window.User = User;
+    $window.Message = Message
+    $window.Conversation = Conversation
+    $window.conversation = Conversation.$find("-Jy3XUBmCEaxiW4_x9HN")
+    //$window.user = User.$find('-JxTmHHaQKFF4pubQDiB');
+    //$window.user = User.$find('-JxQLz-l-U_z4d2hy4Z9');
+    $window.$q= $q
   });
-  //.run(function($window, $timeout, $rootScope, $firebase, $firebaseObject, $firebaseArray, User,  $q, Message) {
-  //  $window.$timeout = $timeout
-  //  $window.$firebase = $firebase;
-  //  $window.$firebaseObject = $firebaseObject;
-  //  $window.$firebaseArray = $firebaseArray;
-  //  $window.User = User;
-  //  $window.Message = Message
-  //  //$window.user = User.$find('-JxTmHHaQKFF4pubQDiB');
-  //  //$window.user = User.$find('-JxQLz-l-U_z4d2hy4Z9');
-  //  $window.$q= $q
-  //});
