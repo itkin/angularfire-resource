@@ -156,7 +156,7 @@ angular.module('myApp', [
       $scope.$on('child-appended', function(){
         $timeout(function(){
           element[0].scrollTop = element[0].scrollHeight;
-          //broadCastScrollEvent()
+          broadCastScrollEvent()
         }, 100);
       });
       $(element).scroll(function(){
@@ -188,6 +188,7 @@ angular.module('myApp', [
           var process = function(event, scrollTop, clientHeight){
             if (
               !querying &&
+              $elt.is(':visible') &&
               $elt.position().top + height < scrollTop + clientHeight
             ){
               querying = true;
@@ -200,7 +201,7 @@ angular.module('myApp', [
               })
             }
           };
-
+          $scope.$on('tab.active', process);
           var off = $scope.$on('scroll', process);
         }
       }

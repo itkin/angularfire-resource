@@ -5,7 +5,7 @@
 
     <tabset id="conversations">
       <tab ng-repeat="conversation in $currentUser.$activeConversations()"
-           select="selectConversation(conversation)"
+           select="$broadcast('tab.active'); selectConversation(conversation)"
            active="conversation.$$displayed">
 
         <tab-heading>
