@@ -19,7 +19,7 @@
 
           <blockquote class="message"
                ng-class="message.userId == $currentUser.$id ? 'blockquote-reverse' : ''"
-               ng-repeat="message in conversation.$messages() | orderBy:createdAt:true"
+               ng-repeat="message in conversation.$$messages | orderBy:createdAt:true"
                scroll-parent-to-last-element
                ng-if="message.$$loaded">
 

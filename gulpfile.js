@@ -25,6 +25,7 @@ gulp.task('coffee', function(done) {
     //.pipe(coffeeFilter.restore)
     .pipe(concat('angularfire-resource.js'))
     .pipe(gulp.dest('dist'))
+    .pipe(gulp.dest('demo'))
     .pipe(connect.reload())
 
     //.pipe(gulp.dest('tmp'));
@@ -40,12 +41,12 @@ gulp.task('html', function(){
 
 gulp.task('watch', function () {
   gulp.watch(['demo/*'], ['html']);
-  gulp.watch('src/**/*.coffee', ['coffee']);
+  //gulp.watch('src/**/*.coffee', ['coffee']);
 });
 
 gulp.task('connect', function() {
   connect.server({
-    //root: 'demo',
+    root: 'demo',
     livereload: true
   });
 });

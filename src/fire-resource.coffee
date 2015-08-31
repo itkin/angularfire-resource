@@ -10,14 +10,12 @@ angular.module('angularfire-resource')
     class Resource
 
       map = {}
-#      @map = map
       constructor: (ref) ->
 
         map[ref.key()]= this
 
         $firebaseObject.call this, ref
 
-#        @$$loaded = false
         @$loaded().then => @$$loaded = true
 
 
@@ -56,7 +54,6 @@ angular.module('angularfire-resource')
       @hasOne: (name, opts = {}) ->
         @_assoc[name] = new AssociationFactory.HasOne(this, name, opts)
         this
-
 
       $destroy: ->
         for name, assoc of @constructor._assoc
