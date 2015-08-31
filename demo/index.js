@@ -213,14 +213,14 @@ angular.module('myApp', [
     $currentUser.$conversations()
 
   })
-  //.run(function($window, $timeout, $rootScope, $firebase, $firebaseObject, $firebaseArray, User,  $q, Message) {
-  //  $window.$timeout = $timeout
-  //  $window.$firebase = $firebase;
-  //  $window.$firebaseObject = $firebaseObject;
-  //  $window.$firebaseArray = $firebaseArray;
-  //  $window.User = User;
-  //  $window.Message = Message
-  //  //$window.user = User.$find('-JxTmHHaQKFF4pubQDiB');
-  //  //$window.user = User.$find('-JxQLz-l-U_z4d2hy4Z9');
-  //  $window.$q= $q
-  //});
+  .run(function($window, $timeout, $rootScope, $firebase, $firebaseObject, $firebaseArray, User,  $q, Message) {
+    $window.$timeout = $timeout
+    $window.$firebase = $firebase;
+    $window.$firebaseObject = $firebaseObject;
+    $window.$firebaseArray = $firebaseArray;
+    $window.User = User;
+    $window.Message = Message
+    //$window.user = User.$find('-JxTmHHaQKFF4pubQDiB');
+    //$window.user = User.$find('-JxQLz-l-U_z4d2hy4Z9');
+    $window.$q= $q
+  });

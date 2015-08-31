@@ -11,7 +11,6 @@ angular.module('angularfire-resource')
 
       map = {}
       constructor: (ref) ->
-
         map[ref.key()]= this
 
         $firebaseObject.call this, ref
@@ -34,12 +33,18 @@ angular.module('angularfire-resource')
       @$ref: ->
         resourceRef
 
+      @$new: (data={}) ->
+        instance = new this(@$ref().push())
+        angular.extend instance, data
+        instance
+
       @$create: (data={}) ->
-        data.createdAt= Firebase.ServerValue.TIMESTAMP
-        def = $firebaseUtils.defer()
-        ref = Resource.$ref().ref().push($firebaseUtils.toJSON(data), $firebaseUtils.makeNodeResolver(def))
-        def.promise.then ->
-          new Resource(ref).$loaded()
+        @$new(data).$save()
+#        data.createdAt= Firebase.ServerValue.TIMESTAMP
+#        def = $firebaseUtils.defer()
+#        ref = @$ref().ref().push($firebaseUtils.toJSON(data), $firebaseUtils.makeNodeResolver(def))
+#        def.promise.then ->
+#          new this(ref).$loaded()
 
       @$find: (key) ->
         if map[key]
@@ -54,6 +59,12 @@ angular.module('angularfire-resource')
       @hasOne: (name, opts = {}) ->
         @_assoc[name] = new AssociationFactory.HasOne(this, name, opts)
         this
+
+      $loaded: ->
+        $firebaseObject.$loaded.apply(this, arguments).then => @$$loaded = true
+
+      $isNew: ->
+        not @createdAt?
 
       $destroy: ->
         for name, assoc of @constructor._assoc
@@ -76,6 +87,8 @@ angular.module('angularfire-resource')
         result
 
       $save: ->
+        this.createdAt = Firebase.ServerValue.TIMESTAMP if @$isNew()
+        this.updatedAt = Firebase.ServerValue.TIMESTAMP
         $firebaseObject.prototype.$save.apply(this, arguments).then =>
           this
 

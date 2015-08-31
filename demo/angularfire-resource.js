@@ -428,17 +428,21 @@ angular.module('angularfire-resource').factory('FireResource', function($firebas
         return resourceRef;
       };
 
-      Resource.$create = function(data) {
-        var def, ref;
+      Resource.$new = function(data) {
+        var instance;
         if (data == null) {
           data = {};
         }
-        data.createdAt = Firebase.ServerValue.TIMESTAMP;
-        def = $firebaseUtils.defer();
-        ref = Resource.$ref().ref().push($firebaseUtils.toJSON(data), $firebaseUtils.makeNodeResolver(def));
-        return def.promise.then(function() {
-          return new Resource(ref).$loaded();
-        });
+        instance = new this(this.$ref().push());
+        angular.extend(instance, data);
+        return instance;
+      };
+
+      Resource.$create = function(data) {
+        if (data == null) {
+          data = {};
+        }
+        return this.$new(data).$save();
       };
 
       Resource.$find = function(key) {
@@ -463,6 +467,10 @@ angular.module('angularfire-resource').factory('FireResource', function($firebas
         }
         this._assoc[name] = new AssociationFactory.HasOne(this, name, opts);
         return this;
+      };
+
+      Resource.prototype.$isNew = function() {
+        return this.createdAt == null;
       };
 
       Resource.prototype.$destroy = function() {
@@ -499,6 +507,10 @@ angular.module('angularfire-resource').factory('FireResource', function($firebas
       };
 
       Resource.prototype.$save = function() {
+        if (this.$isNew) {
+          this.createdAt = Firebase.ServerValue.TIMESTAMP;
+        }
+        this.updatedAt = Firebase.ServerValue.TIMESTAMP;
         return $firebaseObject.prototype.$save.apply(this, arguments).then((function(_this) {
           return function() {
             return _this;
