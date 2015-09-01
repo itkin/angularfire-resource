@@ -35,7 +35,7 @@ angular.module('myApp', [
       this.hasMany('messages', {className: "Message", inverseOf: 'conversation', storedAt: 'createdAtDesc' }, function(baseRef){
         return new Firebase.util.Scroll(baseRef, '$value')
       });
-      this.hasMany('activeAtUsers', {className: 'User', inverseOf: 'activeConversations' })
+      this.hasMany('activeAtUsers', {className: 'User', inverseOf: 'activeConversations' });
       this.hasMany('displayedAtUsers', {className: 'User', inverseOf: 'displayedConversation' });
       //fixme : messages need to be preloaded
       this.prototype.$userUnreadMessages = function(user){
@@ -149,7 +149,7 @@ angular.module('myApp', [
         controller: 'ChatController'
       })
   })
-  .controller('MainController', function($scope, $state, $cookies, $firebase, $currentUser, $presenceCheck, $window, preloadConversations){
+  .controller('MainController', function($scope, $rootScope, $state, $cookies, $firebase, $currentUser, $presenceCheck, $window, preloadConversations){
     $window.user = $currentUser;
     $scope.$currentUser = $currentUser;
 
@@ -166,16 +166,18 @@ angular.module('myApp', [
       }
     });
 
-  })
-  .directive('scrollParentToLastElement', function($timeout){
-    return {
-      scope: true,
-      link: function($scope, element, attrs){
-        if ($scope.$last){
-          $scope.$emit('child-appended')
-        }
-      }
-    }
+    $rootScope.windowIsFocused = true;
+    $($window).focus(function(){
+      $rootScope.$apply(function(){
+        $rootScope.windowIsFocused = true;
+      });
+    }).blur(function(){
+      $rootScope.$apply(function() {
+        $rootScope.windowIsFocused = false
+      });
+    });
+
+
   })
   .directive('scroller', function($timeout){
     return function($scope, element){
@@ -195,13 +197,13 @@ angular.module('myApp', [
       });
     }
   })
-  .directive('message', function($timeout){
+  .directive('message', function($rootScope, $timeout){
     return {
       scope:{
         message: '=',
         user: '=',
         last: '=',
-        conversation: '='
+        conversation: '=',
       },
       link: function($scope, element, attrs, ngRepeat){
         // ask scroller directive to scroll down
@@ -215,7 +217,7 @@ angular.module('myApp', [
           var height = $elt.height();
           var querying = false;
 
-          // set the message as read displayed in the client view
+          // set the message as read if displayed to the client view
           var process = function(event, scrollTop, clientHeight){
             $timeout(function(){
               if (
@@ -235,8 +237,7 @@ angular.module('myApp', [
                   })
               }
             });
-          }
-
+          };
           var offTabActive = $scope.$on('tab.active', process);
           var offScroll = $scope.$on('scroll', process);
         }
@@ -275,11 +276,17 @@ angular.module('myApp', [
   })
   .directive('autoFocus', function($timeout){
     return function($scope, element){
-      $scope.$on('tab.active', function(){
+      function focus() {
         $timeout(function(){
           element[0].focus()
-        });
-      })
+        },10);
+      }
+      $scope.$watch('windowIsFocused', function(newVal){
+        if ($(element).is(':visible') && newVal){
+          focus()
+        }
+      });
+      $scope.$on('tab.active', focus)
     }
   })
   .run(function($rootScope){
