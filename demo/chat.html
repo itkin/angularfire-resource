@@ -23,7 +23,7 @@
           <blockquote class="message"
             ng-class="message.userId == $currentUser.$id ? 'blockquote-reverse' : ''"
             ng-repeat="message in conversation.$$messages | orderBy:createdAt:true"
-            message="message" user="$currentUser" last="$last" conversation="conversation"
+            message
             ng-if="message.$$loaded">
 
             <p>{{message.content}}</p>

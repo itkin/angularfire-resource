@@ -179,16 +179,25 @@ angular.module('myApp', [
     });
 
     $rootScope.windowIsFocused = true;
-    $($window).focus(function(){
-      $rootScope.$apply(function(){
-        $rootScope.windowIsFocused = true;
+    function bindMouseover(){
+      $('body').one('mouseenter', function(){
+        bindMouseleave();
+        $rootScope.$apply(function() {
+          $rootScope.windowIsFocused = true;
+          console.log('windowIsFocused', $rootScope.windowIsFocused)
+        });
       });
-    }).blur(function(){
-      $rootScope.$apply(function() {
-        $rootScope.windowIsFocused = false
+    }
+    function bindMouseleave(){
+      $('body').one('mouseleave', function(){
+        bindMouseover();
+        $rootScope.$apply(function() {
+          $rootScope.windowIsFocused = false;
+          console.log('windowIsFocused', $rootScope.windowIsFocused)
+        });
       });
-    });
-
+    }
+    bindMouseleave()
 
   })
   .directive('scroller', function($timeout){
@@ -211,20 +220,20 @@ angular.module('myApp', [
   })
   .directive('message', function($rootScope, $timeout){
     return {
-      scope:{
-        message: '=',
-        user: '=',
-        last: '=',
-        conversation: '=',
-      },
-      link: function($scope, element, attrs, ngRepeat){
+      //scope:{
+      //  message: '=',
+      //  user: '=',
+      //  last: '=',
+      //  conversation: '=',
+      //  windowIsFocused: '='
+      //},
+      link: function($scope, element, attrs){
         // ask scroller directive to scroll down
-        if ($scope.last){
+        if ($scope.$last){
           $scope.$emit('child-appended', $scope.conversation.$id)
-
         }
         // message is not read yet
-        if ($scope.message.userId != $scope.user.$id && !$scope.message.$redAtBy($scope.user) ){
+        if ($scope.message.userId != $scope.$currentUser.$id && !$scope.message.$redAtBy($scope.$currentUser) ){
           var $elt = $(element);
           var height = $elt.height();
           var querying = false;
@@ -235,13 +244,15 @@ angular.module('myApp', [
               if (
                 !querying &&
                 $scope.conversation.$$displayed &&
+                $scope.windowIsFocused &&
                 $elt.position().top + (height / 2) < $elt.parent()[0].scrollTop + $elt.parent()[0].clientHeight
               ){
                 querying = true;
-                $scope.message.$redByUsers().$add($scope.user)
+                $scope.message.$redByUsers().$add($scope.$currentUser)
                   .then(function(){
                     offTabActive();
                     offScroll();
+                    offWindowIsFocused();
                     $scope.$emit('message-red', $scope.conversation.$id);
                   })
                   .catch(function(){
@@ -250,6 +261,13 @@ angular.module('myApp', [
               }
             });
           };
+          var offWindowIsFocused = $scope.$watch('windowIsFocused', function(newVal){
+            if (newVal){
+              $timeout(function(){
+                process()
+              }, 2000)
+            }
+          });
           var offTabActive = $scope.$on('tab.active', process);
           var offScroll = $scope.$on('scroll', process);
         }
