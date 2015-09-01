@@ -336,9 +336,13 @@ angular.module('angularfire-resource').factory('Collection', function($firebaseA
     };
 
     AssociationCollection.prototype.$add = function(resource) {
-      return this.$$association.add(resource, {
-        to: this.$parentRecord
-      }).then((function(_this) {
+      return $firebaseUtils.resolve(resource.$isNew() ? resource.$save() : void 0).then((function(_this) {
+        return function() {
+          return _this.$$association.add(resource, {
+            to: _this.$parentRecord
+          });
+        };
+      })(this)).then((function(_this) {
         return function(resource) {
           if (_this.$$association.reverseAssociation()) {
             return _this.$$association.reverseAssociation().add(_this.$parentRecord, {
@@ -391,7 +395,7 @@ angular.module('angularfire-resource').factory('FireResource', function($firebas
       resourceOptions = {};
     }
     return Resource = (function() {
-      var i, len, map, name, ref1;
+      var cbName, fn, i, len, map, ref1;
 
       map = {};
 
@@ -469,13 +473,16 @@ angular.module('angularfire-resource').factory('FireResource', function($firebas
       };
 
       ref1 = ['beforeCreate', 'beforeSave', 'afterSave', 'afterCreate'];
-      for (i = 0, len = ref1.length; i < len; i++) {
-        name = ref1[i];
-        Resource['_' + name] = [];
-        Resource[name] = function(cb) {
-          this['_' + name].push(cb);
+      fn = function(cbName) {
+        Resource['_' + cbName] = [];
+        return Resource[cbName] = function(cb) {
+          Resource['_' + cbName].push(cb);
           return this;
         };
+      };
+      for (i = 0, len = ref1.length; i < len; i++) {
+        cbName = ref1[i];
+        fn(cbName);
       }
 
       Resource.prototype.$isNew = function() {
@@ -487,7 +494,7 @@ angular.module('angularfire-resource').factory('FireResource', function($firebas
       };
 
       Resource.prototype.$destroy = function() {
-        var assoc, ref2;
+        var assoc, name, ref2;
         ref2 = this.constructor._assoc;
         for (name in ref2) {
           assoc = ref2[name];
@@ -505,7 +512,7 @@ angular.module('angularfire-resource').factory('FireResource', function($firebas
       };
 
       Resource.prototype.$$updated = function(snap) {
-        var assoc, old, ref2, result;
+        var assoc, name, old, ref2, result;
         if (this.$$isNew && snap.val()) {
           this.$$isNew = false;
         }

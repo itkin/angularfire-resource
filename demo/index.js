@@ -339,19 +339,10 @@ angular.module('myApp', [
       if ($currentUser.$id == user.$id){
         return
       }
-      $q.resolve($currentUser.$conversationWith(user))
-        .then(function (conversation) {
-          if (conversation){
-            return conversation
-          } else {
-            return $q.reject() ;
-          }
-        })
+      $q.resolve($currentUser.$conversationWith(user) || $q.reject())
         .catch(function () {
           return $currentUser.$conversations().$create().then(function (conversation) {
-            conversation.$users().$add(User.$find(user.$id)).then(function () {
-              return conversation
-            });
+            conversation.$users().$add(user);
             return conversation
           })
         })

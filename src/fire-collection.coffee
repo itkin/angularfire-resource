@@ -72,7 +72,9 @@ angular.module('angularfire-resource')
 
     # We do not use $save to save a $$notify cb
     $add: (resource) ->
-      @$$association.add(resource, to: @$parentRecord)
+      $firebaseUtils.resolve( resource.$save() if resource.$isNew() )
+        .then =>
+          @$$association.add(resource, to: @$parentRecord)
         .then (resource) =>
           @$$association.reverseAssociation().add(@$parentRecord, to: resource) if @$$association.reverseAssociation()
         .then -> resource

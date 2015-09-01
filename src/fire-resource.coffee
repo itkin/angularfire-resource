@@ -57,11 +57,13 @@ angular.module('angularfire-resource')
         @_assoc[name] = new AssociationFactory.HasOne(this, name, opts)
         this
 
-      for name in ['beforeCreate', 'beforeSave', 'afterSave', 'afterCreate']
-        @['_'+name]= []
-        @[name]= (cb) ->
-          @['_'+name].push cb
-          this
+      for cbName in ['beforeCreate', 'beforeSave', 'afterSave', 'afterCreate']
+        ( (cbName) ->
+          Resource['_' + cbName]= []
+          Resource[cbName]= (cb) ->
+            Resource['_' + cbName].push cb
+            this
+        )(cbName)
 
       $isNew: ->
         @$$isNew
