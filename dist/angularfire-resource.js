@@ -318,6 +318,9 @@ angular.module('angularfire-resource').factory('Collection', function($firebaseA
       this.$$targetClass = $injector.get(this.$$options.className);
       this.$$association = association;
       this.$parentRecord = parentRecord;
+      if (this.$parentRecord.$isNew()) {
+        throw "Association Error : parent instance should be saved";
+      }
       if (this.$parentRecord) {
         ref = this.$parentRecord.$ref().child(this.$$association.name);
       }

@@ -59,6 +59,7 @@ angular.module('angularfire-resource')
       @$$association = association
       
       @$parentRecord = parentRecord
+      throw "Association Error : parent instance should be saved" if @$parentRecord.$isNew()
 
       ref = @$parentRecord.$ref().child(@$$association.name) if @$parentRecord
       ref = cb(ref) if cb?
