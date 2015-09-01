@@ -389,18 +389,15 @@ angular.module('angularfire-resource').factory('FireResource', function($firebas
       resourceOptions = {};
     }
     return Resource = (function() {
-      var map;
+      var i, len, map, name, ref1;
 
       map = {};
 
       function Resource(ref) {
         map[ref.key()] = this;
         $firebaseObject.call(this, ref);
-        this.$loaded().then((function(_this) {
-          return function() {
-            return _this.$$loaded = true;
-          };
-        })(this));
+        this.$$isNew = false;
+        this.$loaded();
       }
 
       Resource._assoc = {};
@@ -434,6 +431,7 @@ angular.module('angularfire-resource').factory('FireResource', function($firebas
           data = {};
         }
         instance = new this(this.$ref().push());
+        instance.$$isNew = true;
         angular.extend(instance, data);
         return instance;
       };
@@ -469,15 +467,34 @@ angular.module('angularfire-resource').factory('FireResource', function($firebas
         return this;
       };
 
+      ref1 = ['beforeCreate', 'beforeSave', 'afterSave', 'afterCreate'];
+      for (i = 0, len = ref1.length; i < len; i++) {
+        name = ref1[i];
+        Resource.prototype['$$' + name] = [];
+        Resource[name] = function(cb) {
+          this.prototype['$$' + name].push(cb);
+          return this;
+        };
+      }
+
       Resource.prototype.$isNew = function() {
-        return this.createdAt == null;
+        return this.$$isNew;
+      };
+
+      Resource.prototype.$loaded = function() {
+        return $firebaseObject.prototype.$loaded.apply(this, arguments).then((function(_this) {
+          return function() {
+            _this.$$loaded = true;
+            return _this;
+          };
+        })(this));
       };
 
       Resource.prototype.$destroy = function() {
-        var assoc, name, ref1;
-        ref1 = this.constructor._assoc;
-        for (name in ref1) {
-          assoc = ref1[name];
+        var assoc, ref2;
+        ref2 = this.constructor._assoc;
+        for (name in ref2) {
+          assoc = ref2[name];
           if (this['$$' + name] != null) {
             this['$$' + name].$destroy();
           }
@@ -492,12 +509,12 @@ angular.module('angularfire-resource').factory('FireResource', function($firebas
       };
 
       Resource.prototype.$$updated = function(snap) {
-        var assoc, name, old, ref1, result;
+        var assoc, old, ref2, result;
         old = $firebaseUtils.toJSON(this);
         result = $firebaseObject.prototype.$$updated.apply(this, arguments);
-        ref1 = this.constructor._assoc;
-        for (name in ref1) {
-          assoc = ref1[name];
+        ref2 = this.constructor._assoc;
+        for (name in ref2) {
+          assoc = ref2[name];
           if (assoc.type === 'HasOne' && (this["$$" + name] != null) && this[assoc.$$conf.foreignKey] !== old[assoc.$$conf.foreignKey]) {
             this["$$" + name] = null;
             this["$" + name]();
@@ -507,15 +524,44 @@ angular.module('angularfire-resource').factory('FireResource', function($firebas
       };
 
       Resource.prototype.$save = function() {
-        if (this.$isNew) {
+        if (this.$isNew()) {
+          this.$$runCallbacks('beforeCreate');
+        }
+        this.$$runCallbacks('beforeSave');
+        if (this.$isNew()) {
           this.createdAt = Firebase.ServerValue.TIMESTAMP;
         }
         this.updatedAt = Firebase.ServerValue.TIMESTAMP;
         return $firebaseObject.prototype.$save.apply(this, arguments).then((function(_this) {
           return function() {
+            _this.$$isNew = false;
+            if (_this.$isNew()) {
+              _this.$$runCallbacks('afterCreate');
+            }
+            return _this.$$runCallbacks('afterSave');
+          };
+        })(this)).then((function(_this) {
+          return function() {
             return _this;
           };
         })(this));
+      };
+
+      Resource.prototype.$$runCallbacks = function(name) {
+        var cb, j, len1, ref2, results;
+        ref2 = this['$$' + name];
+        results = [];
+        for (j = 0, len1 = ref2.length; j < len1; j++) {
+          cb = ref2[j];
+          if (angular.isFunction(cb)) {
+            results.push(cb.call(this, this));
+          } else if (angular.isString(cb)) {
+            results.push(this[cb].call(this));
+          } else {
+            results.push(void 0);
+          }
+        }
+        return results;
       };
 
       Resource.prototype.$$notify = function() {

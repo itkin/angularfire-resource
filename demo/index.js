@@ -30,17 +30,21 @@ angular.module('myApp', [
     });
   })
   .factory('Message', function(FireResource, $firebase) {
-    var Message = FireResource($firebase.child('messages'), function(){
+    return FireResource($firebase.child('messages'), function(){
       this.hasOne('user', { inverseOf: false });
       this.hasOne('conversation');
+      this.beforeCreate(function(){
+        this.createdAtDesc = - Date.now()
+      });
     });
-    var originalCreate = Message.$create;
-    Message.$create = function(data){
-      data = data || {};
-      data['createdAtDesc'] = - Date.now()
-      return originalCreate.apply(this, [data]);
-    }
-    return Message
+
+    //var originalCreate = Message.$create;
+    //Message.$create = function(data){
+    //  data = data || {};
+    //  data['createdAtDesc'] = - Date.now()
+    //  return originalCreate.apply(this, [data]);
+    //}
+    //return Message
   })
   .factory('$auth', function($firebaseAuth, $firebase){
     return $firebaseAuth($firebase)

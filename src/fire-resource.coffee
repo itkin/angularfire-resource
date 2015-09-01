@@ -15,7 +15,9 @@ angular.module('angularfire-resource')
 
         $firebaseObject.call this, ref
 
-        @$loaded().then => @$$loaded = true
+        @$$isNew = false
+
+        @$loaded()
 
 
       @_assoc: {}
@@ -33,8 +35,10 @@ angular.module('angularfire-resource')
       @$ref: ->
         resourceRef
 
+
       @$new: (data={}) ->
         instance = new this(@$ref().push())
+        instance.$$isNew = true
         angular.extend instance, data
         instance
 
@@ -60,11 +64,19 @@ angular.module('angularfire-resource')
         @_assoc[name] = new AssociationFactory.HasOne(this, name, opts)
         this
 
-      $loaded: ->
-        $firebaseObject.$loaded.apply(this, arguments).then => @$$loaded = true
+      for name in ['beforeCreate', 'beforeSave', 'afterSave', 'afterCreate']
+        @::['$$'+name]= []
+        @[name]= (cb) ->
+          @::['$$'+name].push cb
+          this
 
       $isNew: ->
-        not @createdAt?
+        @$$isNew
+
+      $loaded: ->
+        $firebaseObject::$loaded.apply(this, arguments).then =>
+          @$$loaded = true
+          this
 
       $destroy: ->
         for name, assoc of @constructor._assoc
@@ -87,11 +99,24 @@ angular.module('angularfire-resource')
         result
 
       $save: ->
+        @$$runCallbacks('beforeCreate') if @$isNew()
+        @$$runCallbacks('beforeSave')
         this.createdAt = Firebase.ServerValue.TIMESTAMP if @$isNew()
         this.updatedAt = Firebase.ServerValue.TIMESTAMP
-        $firebaseObject.prototype.$save.apply(this, arguments).then =>
-          this
+        $firebaseObject.prototype.$save.apply(this, arguments)
+          .then =>
+            @$$isNew = false
+            @$$runCallbacks('afterCreate') if @$isNew()
+            @$$runCallbacks('afterSave')
+          .then =>
+            this
 
+      $$runCallbacks: (name) ->
+        for cb in @['$$'+name]
+          if angular.isFunction(cb)
+            cb.call(this, this)
+          else if angular.isString(cb)
+            this[cb].call(this)
 
       $$notify: ->
         console.log @constructor.$name.camelize(true), @$id, "updated"
