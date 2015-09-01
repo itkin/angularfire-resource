@@ -17,8 +17,6 @@ angular.module('angularfire-resource')
 
         @$$isNew = false
 
-        @$loaded()
-
 
       @_assoc: {}
 
@@ -44,11 +42,6 @@ angular.module('angularfire-resource')
 
       @$create: (data={}) ->
         @$new(data).$save()
-#        data.createdAt= Firebase.ServerValue.TIMESTAMP
-#        def = $firebaseUtils.defer()
-#        ref = @$ref().ref().push($firebaseUtils.toJSON(data), $firebaseUtils.makeNodeResolver(def))
-#        def.promise.then ->
-#          new this(ref).$loaded()
 
       @$find: (key) ->
         if map[key]
@@ -65,18 +58,16 @@ angular.module('angularfire-resource')
         this
 
       for name in ['beforeCreate', 'beforeSave', 'afterSave', 'afterCreate']
-        @::['$$'+name]= []
+        @['_'+name]= []
         @[name]= (cb) ->
-          @::['$$'+name].push cb
+          @['_'+name].push cb
           this
 
       $isNew: ->
         @$$isNew
 
       $loaded: ->
-        $firebaseObject::$loaded.apply(this, arguments).then =>
-          @$$loaded = true
-          this
+        $firebaseObject::$loaded.apply(this, arguments)
 
       $destroy: ->
         for name, assoc of @constructor._assoc
@@ -90,6 +81,12 @@ angular.module('angularfire-resource')
 
       # Update cached instance for hasOne assoc if changed server side
       $$updated: (snap) ->
+
+        # state prop value to update eventually
+        @$$isNew = false if @$$isNew and snap.val()
+        @$$loaded = true
+
+        # Update cached instance for hasOne assoc if loaded and changed server side
         old = $firebaseUtils.toJSON(this)
         result = $firebaseObject::$$updated.apply(this, arguments)
         for name, assoc of @constructor._assoc
@@ -98,25 +95,31 @@ angular.module('angularfire-resource')
             @["$#{name}"]()
         result
 
+      # wrap the original angularfire $save function into the callback chain
       $save: ->
-        @$$runCallbacks('beforeCreate') if @$isNew()
-        @$$runCallbacks('beforeSave')
-        this.createdAt = Firebase.ServerValue.TIMESTAMP if @$isNew()
-        this.updatedAt = Firebase.ServerValue.TIMESTAMP
-        $firebaseObject.prototype.$save.apply(this, arguments)
-          .then =>
-            @$$isNew = false
-            @$$runCallbacks('afterCreate') if @$isNew()
-            @$$runCallbacks('afterSave')
-          .then =>
-            this
+        $firebaseUtils.resolve()
+        .then =>
+          @$$runCallbacks('beforeCreate') if @$isNew()
+        .then =>
+          @$$runCallbacks('beforeSave')
+        .then =>
+          @createdAt = Firebase.ServerValue.TIMESTAMP if @$isNew()
+          @updatedAt = Firebase.ServerValue.TIMESTAMP
+        .then =>
+          $firebaseObject::$save.apply(this, arguments)
+        .then =>
+          @$$runCallbacks('afterCreate') if @$isNew()
+        .then =>
+          @$$runCallbacks('afterSave')
+        .then =>
+          this
 
       $$runCallbacks: (name) ->
-        for cb in @['$$'+name]
-          if angular.isFunction(cb)
-            cb.call(this, this)
-          else if angular.isString(cb)
-            this[cb].call(this)
+        promise = $firebaseUtils.resolve()
+        for cb in @constructor['_' + name]
+          cb = @[cb] if angular.isString(cb)
+          promise = promise.then => cb.call(this)
+        promise
 
       $$notify: ->
         console.log @constructor.$name.camelize(true), @$id, "updated"

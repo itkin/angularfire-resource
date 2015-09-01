@@ -54,6 +54,9 @@ angular.module('myApp', [
       this.hasOne('user', { inverseOf: false });
       this.hasMany('redByUsers', {className: 'User', inverseOf: false, storedAt: function(){return Firebase.ServerValue.TIMESTAMP}} )
       this.hasOne('conversation');
+      this.beforeCreate(function(){
+        this.createdAtDesc = - Date.now()
+      });
       this.prototype.$redAtBy = function(user){
         return (this.redByUsers||{})[user.$id]
       }

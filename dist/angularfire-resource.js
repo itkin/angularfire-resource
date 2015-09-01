@@ -399,7 +399,6 @@ angular.module('angularfire-resource').factory('FireResource', function($firebas
         map[ref.key()] = this;
         $firebaseObject.call(this, ref);
         this.$$isNew = false;
-        this.$loaded();
       }
 
       Resource._assoc = {};
@@ -472,9 +471,9 @@ angular.module('angularfire-resource').factory('FireResource', function($firebas
       ref1 = ['beforeCreate', 'beforeSave', 'afterSave', 'afterCreate'];
       for (i = 0, len = ref1.length; i < len; i++) {
         name = ref1[i];
-        Resource.prototype['$$' + name] = [];
+        Resource['_' + name] = [];
         Resource[name] = function(cb) {
-          this.prototype['$$' + name].push(cb);
+          this['_' + name].push(cb);
           return this;
         };
       }
@@ -484,12 +483,7 @@ angular.module('angularfire-resource').factory('FireResource', function($firebas
       };
 
       Resource.prototype.$loaded = function() {
-        return $firebaseObject.prototype.$loaded.apply(this, arguments).then((function(_this) {
-          return function() {
-            _this.$$loaded = true;
-            return _this;
-          };
-        })(this));
+        return $firebaseObject.prototype.$loaded.apply(this, arguments);
       };
 
       Resource.prototype.$destroy = function() {
@@ -512,6 +506,10 @@ angular.module('angularfire-resource').factory('FireResource', function($firebas
 
       Resource.prototype.$$updated = function(snap) {
         var assoc, old, ref2, result;
+        if (this.$$isNew && snap.val()) {
+          this.$$isNew = false;
+        }
+        this.$$loaded = true;
         old = $firebaseUtils.toJSON(this);
         result = $firebaseObject.prototype.$$updated.apply(this, arguments);
         ref2 = this.constructor._assoc;
@@ -526,20 +524,35 @@ angular.module('angularfire-resource').factory('FireResource', function($firebas
       };
 
       Resource.prototype.$save = function() {
-        if (this.$isNew()) {
-          this.$$runCallbacks('beforeCreate');
-        }
-        this.$$runCallbacks('beforeSave');
-        if (this.$isNew()) {
-          this.createdAt = Firebase.ServerValue.TIMESTAMP;
-        }
-        this.updatedAt = Firebase.ServerValue.TIMESTAMP;
-        return $firebaseObject.prototype.$save.apply(this, arguments).then((function(_this) {
+        return $firebaseUtils.resolve().then((function(_this) {
           return function() {
-            _this.$$isNew = false;
             if (_this.$isNew()) {
-              _this.$$runCallbacks('afterCreate');
+              return _this.$$runCallbacks('beforeCreate');
             }
+          };
+        })(this)).then((function(_this) {
+          return function() {
+            return _this.$$runCallbacks('beforeSave');
+          };
+        })(this)).then((function(_this) {
+          return function() {
+            if (_this.$isNew()) {
+              _this.createdAt = Firebase.ServerValue.TIMESTAMP;
+            }
+            return _this.updatedAt = Firebase.ServerValue.TIMESTAMP;
+          };
+        })(this)).then((function(_this) {
+          return function() {
+            return $firebaseObject.prototype.$save.apply(_this, arguments);
+          };
+        })(this)).then((function(_this) {
+          return function() {
+            if (_this.$isNew()) {
+              return _this.$$runCallbacks('afterCreate');
+            }
+          };
+        })(this)).then((function(_this) {
+          return function() {
             return _this.$$runCallbacks('afterSave');
           };
         })(this)).then((function(_this) {
@@ -550,20 +563,21 @@ angular.module('angularfire-resource').factory('FireResource', function($firebas
       };
 
       Resource.prototype.$$runCallbacks = function(name) {
-        var cb, j, len1, ref2, results;
-        ref2 = this['$$' + name];
-        results = [];
+        var cb, j, len1, promise, ref2;
+        promise = $firebaseUtils.resolve();
+        ref2 = this.constructor['_' + name];
         for (j = 0, len1 = ref2.length; j < len1; j++) {
           cb = ref2[j];
-          if (angular.isFunction(cb)) {
-            results.push(cb.call(this, this));
-          } else if (angular.isString(cb)) {
-            results.push(this[cb].call(this));
-          } else {
-            results.push(void 0);
+          if (angular.isString(cb)) {
+            cb = this[cb];
           }
+          promise = promise.then((function(_this) {
+            return function() {
+              return cb.call(_this);
+            };
+          })(this));
         }
-        return results;
+        return promise;
       };
 
       Resource.prototype.$$notify = function() {

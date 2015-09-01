@@ -77,8 +77,6 @@ angular.module('angularfire-resource')
           @$$association.reverseAssociation().add(@$parentRecord, to: resource) if @$$association.reverseAssociation()
         .then -> resource
 
-
-
     $remove: (resource) ->
       $firebaseArray::$remove.call(this, resource)
       .then =>
