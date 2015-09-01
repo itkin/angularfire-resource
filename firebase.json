@@ -1,0 +1,9 @@
+{
+  "firebase": "fireresourcetest",
+  "public": "demo",
+  "ignore": [
+    "firebase.json",
+    "**/.*",
+    "**/node_modules/**"
+  ]
+}

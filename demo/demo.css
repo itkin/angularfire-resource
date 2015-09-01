@@ -21,7 +21,12 @@ tabset{
 }
 
 /* tab panes */
-
+.close-tab{
+  cursor: pointer!important;
+  color: black!important;
+  position: relative;
+  top: 2px;
+}
 .tab-content{
   margin-top: 20px;
 }
