@@ -74,20 +74,24 @@ angular.module('angularfire-resource')
     $add: (resource) ->
       $firebaseUtils.resolve( resource.$save() if resource.$isNew() )
         .then =>
+          $firebaseUtils.reject() if @$indexFor(resource.$id) isnt -1
+        .then =>
           @$$association.add(resource, to: @$parentRecord)
         .then (resource) =>
           @$$association.reverseAssociation().add(@$parentRecord, to: resource) if @$$association.reverseAssociation()
+        .catch ->
+          console.log("resource allready in the collection")
         .then -> resource
 
     $remove: (resource) ->
       $firebaseArray::$remove.call(this, resource)
       .then =>
         @$$association.reverseAssociation().remove(@$parentRecord, from: resource) if @$$association.reverseAssociation()
-      .then ->
-        resource
       .catch =>
         console.log @$$association.name.camelize(true), @$parentRecord.$id, @$$association.name, arguments
+      .then ->
         resource
+
 
 
 #    $destroy: ->

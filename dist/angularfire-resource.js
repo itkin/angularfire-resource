@@ -338,6 +338,12 @@ angular.module('angularfire-resource').factory('Collection', function($firebaseA
     AssociationCollection.prototype.$add = function(resource) {
       return $firebaseUtils.resolve(resource.$isNew() ? resource.$save() : void 0).then((function(_this) {
         return function() {
+          if (_this.$indexFor(resource.$id) !== -1) {
+            return $firebaseUtils.reject();
+          }
+        };
+      })(this)).then((function(_this) {
+        return function() {
           return _this.$$association.add(resource, {
             to: _this.$parentRecord
           });
@@ -350,7 +356,9 @@ angular.module('angularfire-resource').factory('Collection', function($firebaseA
             });
           }
         };
-      })(this)).then(function() {
+      })(this))["catch"](function() {
+        return console.log("resource allready in the collection");
+      }).then(function() {
         return resource;
       });
     };
@@ -364,14 +372,13 @@ angular.module('angularfire-resource').factory('Collection', function($firebaseA
             });
           }
         };
+      })(this))["catch"]((function(_this) {
+        return function() {
+          return console.log(_this.$$association.name.camelize(true), _this.$parentRecord.$id, _this.$$association.name, arguments);
+        };
       })(this)).then(function() {
         return resource;
-      })["catch"]((function(_this) {
-        return function() {
-          console.log(_this.$$association.name.camelize(true), _this.$parentRecord.$id, _this.$$association.name, arguments);
-          return resource;
-        };
-      })(this));
+      });
     };
 
     AssociationCollection.prototype.$$notify = function() {

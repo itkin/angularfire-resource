@@ -46,6 +46,14 @@ angular.module('myApp', [
             return message.userId != user.$id && !message.$redAtBy(user)
           });
         }
+      };
+      this.prototype.$activate = function(){
+        var promises = [];
+        var self = this;
+        angular.forEach(this.$users(), function(user){
+          promises.push(self.$activeAtUsers().$add(user))
+        });
+        $q.all(promises)
       }
     });
   })
@@ -306,7 +314,7 @@ angular.module('myApp', [
 
     $scope.users = User.$query(function(baseRef){
       return new Firebase.util.Scroll(baseRef, 'presence')
-    })
+    });
 
     $scope.loadUsers = function(){
       return function(){
@@ -318,15 +326,16 @@ angular.module('myApp', [
         return conversation.$messages().$next(5)
       }
     };
-    $scope.sendMessage = function(){
-      $currentUser.$displayedConversation().$messages().$create(angular.extend({},$scope.newMessage, {userId: $currentUser.$id}))
-      $scope.newMessage = {};
+    $scope.saveMessage = function(){
+      angular.extend($scope.newMessage, { userId: $currentUser.$id });
+      $currentUser.$displayedConversation().$messages().$add($scope.newMessage)
+        .then(function(message){
+          message.$conversation().$activate()
+        });
+      $scope.newMessage = Message.$new();
     };
 
     $scope.selectConversation = function(conversation){
-      //if (!conversation.$$messages){
-      //  conversation.$messages().$next(5)
-      //}
       $currentUser.$setDisplayedConversation(conversation);
     };
 
@@ -348,10 +357,7 @@ angular.module('myApp', [
         })
         .then(function (conversation) {
           conversation.$$displayed = true;
-          return $currentUser.$activeConversations().$add(conversation)
-        })
-        .then(function (conversation) {
-          user.$activeConversations().$add(conversation);
+          $currentUser.$activeConversations().$add(conversation);
         })
     };
 
@@ -360,12 +366,12 @@ angular.module('myApp', [
     }
 
     //todo : include
-    $scope.users.$next(10)
-    $scope.newMessage = {};
+    $scope.users.$next(10);
+    $scope.newMessage = Message.$new();
 
   })
   .run(function($window, $timeout, $rootScope, $firebase, $firebaseObject, $firebaseArray, User,  $q, Message, Conversation) {
-    $window.$timeout = $timeout
+    $window.$timeout = $timeout;
     $window.$firebase = $firebase;
     $window.$firebaseObject = $firebaseObject;
     $window.$firebaseArray = $firebaseArray;
