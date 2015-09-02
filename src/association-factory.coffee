@@ -38,18 +38,18 @@ angular.module('angularfire-resource')
 
     ensure_options(Resource, @type, name, opts)
 
-    @$$conf = angular.extend(name: name, opts)
-
     @reverseAssociation = ->
       $injector.get(opts.className)._assoc[opts.inverseOf] if opts.inverseOf
 
+    @targetClass = ->
+      $injector.get opts.className
+
     self = this
 
-    Resource::[publicKey name] = (associationOptions={}, updateRef) ->
-      associationOptions
-      if updateRef or not @[privateKey name]
+    Resource::[publicKey name] = (newCb) ->
+      if newCb or not @[privateKey name]
         @[privateKey name].$destroy() if @[privateKey name]
-        @[privateKey name] = new AssociationCollection this, self, opts, (updateRef or cb)
+        @[privateKey name] = new AssociationCollection self, this, (newCb or cb)
       else
         @[privateKey name]
 
@@ -87,12 +87,13 @@ angular.module('angularfire-resource')
 
     ensure_options(Resource, @type, name, opts)
 
-    @$$conf = angular.extend(name: name, opts)
+    angular.extend(this, opts)
+
+    @targetClass = ->
+      $injector.get @className
 
     reverseAssociation = ->
       $injector.get(opts.className)._assoc[opts.inverseOf] if opts.inverseOf
-
-    association = this
 
     @remove = (resource, params) ->
       def = $firebaseUtils.defer()
@@ -105,6 +106,8 @@ angular.module('angularfire-resource')
       def = $firebaseUtils.defer()
       Resource.$ref().child(getResourceId(params.to)).child(opts.foreignKey).set(getResourceId(resource), $firebaseUtils.makeNodeResolver(def))
       def.promise.then -> resource
+
+    association = this
 
     Resource::[publicKey name] = ->
       klass = $injector.get opts.className

@@ -1,13 +1,24 @@
 
 angular.module('angularfire-resource')
 
-.factory 'Collection', ($firebaseArray, $firebaseUtils, $timeout) ->
-  class Collection
-    constructor: (targetClass, ref) ->
-      @$$targetClass = targetClass
-      ref or= @$$targetClass.$ref().ref()
+.factory 'Collection', ($firebaseArray, $firebaseUtils) ->
 
-      return $firebaseArray.call this, ref
+  class Collection
+    constructor: (targetClass, cb) ->
+      @$$targetClass = targetClass
+      @$$init(@$$targetClass.$ref(), cb)
+      return @$list
+
+    $$init: (baseRef, cb) ->
+      self = this
+      init = (ref) ->
+        $firebaseArray.call self, ref
+        self
+
+      if cb?
+        cb.call(this, baseRef, init)
+      else
+        init(baseRef)
 
     $loaded: ->
       $firebaseArray::$loaded.apply(this, arguments).then =>
@@ -15,11 +26,17 @@ angular.module('angularfire-resource')
         itemsPromises.push item.$loaded() for item in @$list
         $firebaseUtils.allPromises(itemsPromises)
 
+    $include: (includes) ->
+      @$loaded().then =>
+        @$$includes = includes
+        instance.$include(@$$includes) for instance in @$list
+      this
+
     # retrieve the associated resource
     $$added: (snap) ->
       result = $firebaseArray::$$added.apply(this, arguments)
       if result
-        @$$targetClass.$find(snap.key()) #.$loaded()
+        @$$targetClass.$find(snap.key()).$include(@$$includes)
       else
         result
 
@@ -53,22 +70,19 @@ angular.module('angularfire-resource')
 
   class AssociationCollection extends Collection
 
-    constructor: (parentRecord, association, opts, cb) ->
-      @$$options = opts
-      @$$targetClass = $injector.get @$$options.className
+    constructor: (association, parentRecord, cb) ->
       @$$association = association
-      @$$includes = opts.includes
-      
-      @$parentRecord = parentRecord
-      throw "Association Error : parent instance should be saved" if @$parentRecord.$isNew()
+      @$$targetClass = association.targetClass()
+      @$$parentRecord = parentRecord
+      throw "Association Error : parent instance should be saved" if @$$parentRecord.$isNew()
 
-      ref = @$parentRecord.$ref().child(@$$association.name) if @$parentRecord
-      ref = cb(ref) if cb?
-      return $firebaseArray.call this, ref
+      ref = @$$parentRecord.$ref().child(@$$association.name)
+      @$$init ref, cb
+      return @$list
 
     # delegate to the parent klass constructor to create item and then add it to the collection
     $create: (data)->
-      @$$targetClass.$create(data).then (resource) =>
+      @$$association.targetClass().$create(data).then (resource) =>
         @$add(resource)
 
 
@@ -78,9 +92,9 @@ angular.module('angularfire-resource')
         .then =>
           $firebaseUtils.reject() if @$indexFor(resource.$id) isnt -1
         .then =>
-          @$$association.add(resource, to: @$parentRecord)
+          @$$association.add(resource, to: @$$parentRecord)
         .then (resource) =>
-          @$$association.reverseAssociation().add(@$parentRecord, to: resource) if @$$association.reverseAssociation()
+          @$$association.reverseAssociation().add(@$$parentRecord, to: resource) if @$$association.reverseAssociation()
         .catch ->
           console.log("resource allready in the collection")
         .then -> resource
@@ -88,19 +102,17 @@ angular.module('angularfire-resource')
     $remove: (resource) ->
       $firebaseArray::$remove.call(this, resource)
       .then =>
-        @$$association.reverseAssociation().remove(@$parentRecord, from: resource) if @$$association.reverseAssociation()
+        @$$association.reverseAssociation().remove(@$$parentRecord, from: resource) if @$$association.reverseAssociation()
       .catch =>
-        console.log @$$association.name.camelize(true), @$parentRecord.$id, @$$association.name, arguments
+        console.log @$$association.name.camelize(true), @$$parentRecord.$id, @$$association.name, arguments
       .then ->
         resource
-
-
 
 #    $destroy: ->
 ##      item.$destroy() for item in @$list
 #      $firebaseArray::$destroy.apply(this, arguments)
 
     $$notify: ->
-      console.log @$parentRecord.constructor.$name.camelize(true), @$parentRecord.$id, @$$association.name, arguments[0], arguments[1]
+      console.log @$$parentRecord.constructor.$name.camelize(true), @$$parentRecord.$id, @$$association.name, arguments[0], arguments[1]
       $firebaseArray::$$notify.apply this, arguments
 

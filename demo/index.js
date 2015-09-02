@@ -20,7 +20,7 @@ angular.module('myApp', [
       this.hasOne('displayedConversation', {className: 'Conversation', inverseOf: 'displayedAtUsers', foreignKey: 'displayedConversationId' });
       this.prototype.$conversationWith = function(user){
         if (!this.$$conversations){
-          throw '$conversationWith bad call: messages need to be preloaded first'
+          throw '$conversationWith bad call: conversation need to be preloaded first'
         } else {
           return _.find(this.$conversations(), function (conv) {
             return (conv.users || [])[user.$id] ? true : false
@@ -32,8 +32,8 @@ angular.module('myApp', [
   .factory('Conversation', function(FireResource, $firebase) {
     return FireResource($firebase.child('conversations'), function(){
       this.hasMany('users', {className: "User", inverseOf: 'conversations'});
-      this.hasMany('messages', {className: "Message", inverseOf: 'conversation', storedAt: 'createdAtDesc' }, function(baseRef){
-        return new Firebase.util.Scroll(baseRef, '$value')
+      this.hasMany('messages', {className: "Message", inverseOf: 'conversation', storedAt: 'createdAtDesc' }, function(baseRef, init){
+        init(new Firebase.util.Scroll(baseRef, '$value')).$next(5);
       });
       this.hasMany('activeAtUsers', {className: 'User', inverseOf: 'activeConversations' });
       this.hasMany('displayedAtUsers', {className: 'User', inverseOf: 'displayedConversation' });
@@ -144,13 +144,7 @@ angular.module('myApp', [
             });
           },
           preloadConversations: function($currentUser, Conversation){
-            //todo developp the include option to preload stuff
-            $currentUser.$conversations().$watch(function(opts){
-              if (opts.event == 'child_added'){
-                Conversation.$find(opts.key).$messages().$next(5);
-              }
-            });
-            $currentUser.$conversations().$loaded()
+            return $currentUser.$conversations().$include('messages').$loaded()
           }
         }
       })
@@ -330,8 +324,8 @@ angular.module('myApp', [
   })
   .controller('ChatController', function($scope, $filter, $state, $timeout, $firebase, $q, User, Conversation, $window, $timeout, $firebaseArray, $currentUser) {
 
-    $scope.users = User.$query(function(baseRef){
-      return new Firebase.util.Scroll(baseRef, 'presence')
+    $scope.users = User.$query(function(baseRef, init){
+      init(new Firebase.util.Scroll(baseRef, 'presence')).$next(10)
     });
 
     $scope.loadUsers = function(){
@@ -384,7 +378,6 @@ angular.module('myApp', [
     }
 
     //todo : include
-    $scope.users.$next(10);
     $scope.newMessage = Message.$new();
 
   })
