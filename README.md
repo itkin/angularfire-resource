@@ -9,7 +9,7 @@ https://fireresourcetest.firebaseapp.com
 
 ## Purpose
 
-Allow this kind of candy coding
+Set up your relations into a model layer, let it deal with foreign keys & clean your controllers from $firebase calls
 
 ```javascript
 
@@ -21,22 +21,64 @@ angular.module('myApp')
 
   .factory('User', function(FireResource, $firebase) {
     return FireResource($firebase.child('users'))
-      .hasMany('conversations', {inverseOf: 'users'})
+      .hasMany('conversations')
+      .hasOne('displayedConversation', {className: 'Conversation', inverseOf: false, foreignKey: 'displayedConversationId' })
   })
   
   .factory('Conversation', function(FireResource, $firebase) {
     return FireResource($firebase.child('conversations'), function(){
-      this.hasMany('users', {className: "User", inverseOf: 'conversations'});
-      this.hasMany('messages', {className: "Message", inverseOf: 'conversation', storedAt: 'createdAtDesc' })
+      this.hasMany('users');
+      this.hasMany('messages', {storedAt: 'createdAtDesc' }, function(baseRef, init){ // customize the way you store foreign keys collection to be able to sort data within a relation
+        init(new Firebase.util.Scroll(baseRef, '$value')).$next(5); // use firebase util to handle the pagination 
+      });
+      this.beforeCreate(function(){        // hooks
+        this.createdAtDesc = - Date.now()
+      });
     });
   })
   
   .factory('Message', function(FireResource, $firebase) {
     return FireResource($firebase.child('messages'), function(){
-      this.hasOne('user', { inverseOf: false });
+      this.hasOne('user', { inverseOf: false }); // no message foreign key into the user model
       this.hasOne('conversation');
     });
   })
+  
+  // $currentUser is an instance of User retrieved from a resolve
+  .controller('ExamplesController', function($scope, Message, $currentUser){
+    // preload associations
+    $scope.conversations = $currentUser.$conversations().$include('messages')
+    
+    // $query on all ( rootUrl/users ) 
+    $scope.allUsers = User.$query()
+    
+    // $query on some customizing your ref
+    $scope.someUsers = User.$query(function(baseRef, init){
+      init(new Firebase.util.Scroll(baseRef, 'presence')).$next(10)
+    });
+    
+    // use $next and $prev to access the scroll instance of your custom ref (if used)
+    $scope.loadMoreUsers = function(){
+      $scope.someUsers.$next(10)
+    };
+    
+    $scope.newMessage = Message.$new()
+    $scope.saveMessage = function(){
+      // set the foreign key of a relation without having to load it
+      angular.extend($scope.newMessage, { userId: $currentUser.$id });
+      //add an instance to message to a collection
+      $currentUser.$displayedConversation().$messages().$add($scope.newMessage)
+      $scope.newMessage = Message.$new();
+    };
+    
+    $scope.createConversationWith = function(user) {
+      // this will at first create a conversation then add it to $currentUser then to user (both way each association)       
+      return $currentUser.$conversations().$create()
+        .then(function (conversation) {
+          conversation.$users().$add(user);
+        })
+  })
+    
 ```
 
 Maintain a deserialize database schema with duplicated foreign keys, to allow security enforcement and easy admin queries.
@@ -47,6 +89,7 @@ To continue on the above example :
 root
 |_ users
 | |_ userId1
+| | |_ displayedConversationId: conversationId1
 | | |_ conversations
 | |   |_ conversationId1: true
 | |_ userId2
@@ -60,8 +103,8 @@ root
 |   | |_ userId1: true
 |   | |_ userId2: true
 |   |_ messages
-|     |_ messageId1: true
-|     |_ messageId2: true
+|     |_ messageId1: aCustomValue 
+|     |_ messageId2: aCustomValue
 |
 |
 |_ messages
