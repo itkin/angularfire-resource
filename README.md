@@ -80,15 +80,13 @@ root
     
 ```
 
-... clean your controllers from $firebase calls. 
+And now write some clean controllers
 
 ```javascript
 angular.module('myApp')
 
   // $currentUser is an instance of User retrieved from a resolve
   .controller('ExamplesController', function($scope, Message, $currentUser){
-    // preload associations
-    $scope.conversations = $currentUser.$conversations().$include('messages')
     
     // $query on all ( rootUrl/users ) 
     $scope.allUsers = User.$query()
@@ -102,18 +100,21 @@ angular.module('myApp')
     $scope.loadMoreUsers = function(){
       $scope.someUsers.$next(10)
     };
+
+    // preload associations
+    $scope.conversations = $currentUser.$conversations().$include('messages')
     
     $scope.newMessage = Message.$new()
     $scope.saveMessage = function(){
-      // set the foreign key of a relation without having to load it
       angular.extend($scope.newMessage, { userId: $currentUser.$id });
-      //add an instance to message to a collection
+
+      //add an instance to a collection
       $currentUser.$displayedConversation().$messages().$add($scope.newMessage)
       $scope.newMessage = Message.$new();
     };
     
     $scope.createConversationWith = function(user) {
-      // this will at first create a conversation then add it to $currentUser then to user (both way each association)       
+      // do sequential operations
       return $currentUser.$conversations().$create()
         .then(function (conversation) {
           conversation.$users().$add(user);
@@ -123,6 +124,7 @@ angular.module('myApp')
 ```
 
 FireResource instances are extended [firebaseObjects](https://www.firebase.com/docs/web/libraries/angular/api.html), so you'll find everything you're used to with firebase 
++ createdAt / updatedAt timestamps
 + hooks (beforeCreate, afterCreate, beforeSave, afterSave)
 + associations (association name prefixed by "$")
 + a dictionary map to ensure an instance is not retrieved 2 times from firebase
