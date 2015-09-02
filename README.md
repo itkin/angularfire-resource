@@ -9,11 +9,11 @@ https://fireresourcetest.firebaseapp.com
 
 ## Purpose
 
-Set up your relations into a model layer, let it deal with foreign keys & clean your controllers from $firebase calls
+Set up your relations into a model layer
 
 ```javascript
 
-angular.module('myApp')
+angular.module('myApp', ['angularfire-resource'])
 
   .factory('$firebase', function() {
     return new Firebase('https://fireresourcetest.firebaseio.com/');
@@ -44,6 +44,47 @@ angular.module('myApp')
     });
   })
   
+```
+
+The above code will maintain a deserialize data model with duplicated foreign keys, to allow security enforcement and easy admin queries.
+
+```
+root
+|_ users
+| |_ userId1
+| | |_ displayedConversationId: conversationId1
+| | |_ conversations
+| |   |_ conversationId1: true
+| |_ userId2
+|   |_ conversations
+|     |_ conversationId1: true
+|
+|
+|_ conversations
+| |_ conversationId1
+|   |_users
+|   | |_ userId1: true
+|   | |_ userId2: true
+|   |_ messages
+|     |_ messageId1: aCustomValue 
+|     |_ messageId2: aCustomValue
+|
+|
+|_ messages
+  |_ messageId1
+  | |_ userId: userId1
+  | |_ conversationId: conversationId1
+  |_ messageId2
+    |_ userId: userId2
+    |_ conversationId: conversationId1
+    
+```
+
+... clean your controllers from $firebase calls. 
+
+```javascript
+angular.module('myApp')
+
   // $currentUser is an instance of User retrieved from a resolve
   .controller('ExamplesController', function($scope, Message, $currentUser){
     // preload associations
@@ -81,54 +122,31 @@ angular.module('myApp')
     
 ```
 
-Maintain a deserialize database schema with duplicated foreign keys, to allow security enforcement and easy admin queries.
+FireResource instances are extended [firebaseObjects](https://www.firebase.com/docs/web/libraries/angular/api.html), so you'll find everything you're used to with firebase 
++ hooks (beforeCreate, afterCreate, beforeSave, afterSave)
++ associations (association name prefixed by "$")
++ a dictionary map to ensure an instance is not retrieved 2 times from firebase
 
-To continue on the above example : 
+AssociationCollection instances are extended [firebaseArrays](https://www.firebase.com/docs/web/libraries/angular/api.html) 
++ they are made of FireResource instances
++ they can preload some of their instance relations (using $include)
++ they deal nicely with the fireUtil librairy for pagination / infinite scrolling work
 
-```
-root
-|_ users
-| |_ userId1
-| | |_ displayedConversationId: conversationId1
-| | |_ conversations
-| |   |_ conversationId1: true
-| |_ userId2
-|   |_ conversations
-|     |_ conversationId1: true
-|
-|
-|_ conversations
-| |_ conversationId1
-|   |_users
-|   | |_ userId1: true
-|   | |_ userId2: true
-|   |_ messages
-|     |_ messageId1: aCustomValue 
-|     |_ messageId2: aCustomValue
-|
-|
-|_ messages
-  |_ messageId1
-  | |_ userId: userId1
-  | |_ conversationId: conversationId1
-  |_ messageId2
-    |_ userId: userId2
-    |_ conversationId: conversationId1
-    
-```
+
 ## API
 
-FireResources's instance are basically extended $firebaseObject ones, refer to the angularfire [documentation](https://www.firebase.com/docs/web/libraries/angular/api.html)
+### FireResource
 
-#FireResource
-Set your class up
 params : 
+
 - firebase reference, 
 - options 
 - callback function called in the context of the defined resource (to add methods, relations, or override stuff)
 
-#Resource.HasMany
+#### Resource.HasMany
+
 Set a relation one to many
+
 params :
 - name : name of the relation
 - options
@@ -139,8 +157,10 @@ params :
 Defines the following methods into the parent class : 
 - resource.$name() : get the association array
 
-#Resource.HasOne
+#### Resource.HasOne
+
 Set a relation one to one or one to many
+
 params :
 - name : name of the relation
 - options
