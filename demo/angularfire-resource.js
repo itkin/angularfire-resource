@@ -72,21 +72,21 @@ angular.module('angularfire-resource').factory('AssociationFactory', function($i
     }
     opts.className || (opts.className = name.replace(/s$/, '').camelize(true));
     ensure_options(Resource, this.type, name, opts);
-    this.$$conf = angular.extend({
-      name: name
-    }, opts);
     this.reverseAssociation = function() {
       if (opts.inverseOf) {
         return $injector.get(opts.className)._assoc[opts.inverseOf];
       }
     };
+    this.targetClass = function() {
+      return $injector.get(opts.className);
+    };
     self = this;
-    Resource.prototype[publicKey(name)] = function(updateRef) {
-      if (updateRef || !this[privateKey(name)]) {
+    Resource.prototype[publicKey(name)] = function(newCb) {
+      if (newCb || !this[privateKey(name)]) {
         if (this[privateKey(name)]) {
           this[privateKey(name)].$destroy();
         }
-        return this[privateKey(name)] = new AssociationCollection(this, self, opts, updateRef || cb);
+        return this[privateKey(name)] = new AssociationCollection(self, this, newCb || cb);
       } else {
         return this[privateKey(name)];
       }
@@ -135,15 +135,15 @@ angular.module('angularfire-resource').factory('AssociationFactory', function($i
     opts.className || (opts.className = name.camelize(true));
     opts.foreignKey || (opts.foreignKey = name + 'Id');
     ensure_options(Resource, this.type, name, opts);
-    this.$$conf = angular.extend({
-      name: name
-    }, opts);
+    angular.extend(this, opts);
+    this.targetClass = function() {
+      return $injector.get(this.className);
+    };
     reverseAssociation = function() {
       if (opts.inverseOf) {
         return $injector.get(opts.className)._assoc[opts.inverseOf];
       }
     };
-    association = this;
     this.remove = function(resource, params) {
       var def;
       def = $firebaseUtils.defer();
@@ -164,6 +164,7 @@ angular.module('angularfire-resource').factory('AssociationFactory', function($i
         return resource;
       });
     };
+    association = this;
     Resource.prototype[publicKey(name)] = function() {
       var klass, name1;
       klass = $injector.get(opts.className);
@@ -234,14 +235,28 @@ angular.module('angularfire-resource').factory('AssociationFactory', function($i
 var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
   hasProp = {}.hasOwnProperty;
 
-angular.module('angularfire-resource').factory('Collection', function($firebaseArray, $firebaseUtils, $timeout) {
+angular.module('angularfire-resource').factory('Collection', function($firebaseArray, $firebaseUtils) {
   var Collection;
   Collection = (function() {
-    function Collection(targetClass, ref) {
+    function Collection(targetClass, cb) {
       this.$$targetClass = targetClass;
-      ref || (ref = this.$$targetClass.$ref().ref());
-      return $firebaseArray.call(this, ref);
+      this.$$init(this.$$targetClass.$ref(), cb);
+      return this.$list;
     }
+
+    Collection.prototype.$$init = function(baseRef, cb) {
+      var init, self;
+      self = this;
+      init = function(ref) {
+        $firebaseArray.call(self, ref);
+        return self;
+      };
+      if (cb != null) {
+        return cb.call(this, baseRef, init);
+      } else {
+        return init(baseRef);
+      }
+    };
 
     Collection.prototype.$loaded = function() {
       return $firebaseArray.prototype.$loaded.apply(this, arguments).then((function(_this) {
@@ -258,11 +273,28 @@ angular.module('angularfire-resource').factory('Collection', function($firebaseA
       })(this));
     };
 
+    Collection.prototype.$include = function(includes) {
+      this.$loaded().then((function(_this) {
+        return function() {
+          var i, instance, len, ref1, results;
+          _this.$$includes = includes;
+          ref1 = _this.$list;
+          results = [];
+          for (i = 0, len = ref1.length; i < len; i++) {
+            instance = ref1[i];
+            results.push(instance.$include(_this.$$includes));
+          }
+          return results;
+        };
+      })(this));
+      return this;
+    };
+
     Collection.prototype.$$added = function(snap) {
       var result;
       result = $firebaseArray.prototype.$$added.apply(this, arguments);
       if (result) {
-        return this.$$targetClass.$find(snap.key());
+        return this.$$targetClass.$find(snap.key()).$include(this.$$includes);
       } else {
         return result;
       }
@@ -312,23 +344,21 @@ angular.module('angularfire-resource').factory('Collection', function($firebaseA
   return AssociationCollection = (function(superClass) {
     extend(AssociationCollection, superClass);
 
-    function AssociationCollection(parentRecord, association, opts, cb) {
+    function AssociationCollection(association, parentRecord, cb) {
       var ref;
-      this.$$options = opts;
-      this.$$targetClass = $injector.get(this.$$options.className);
       this.$$association = association;
-      this.$parentRecord = parentRecord;
-      if (this.$parentRecord) {
-        ref = this.$parentRecord.$ref().child(this.$$association.name);
+      this.$$targetClass = association.targetClass();
+      this.$$parentRecord = parentRecord;
+      if (this.$$parentRecord.$isNew()) {
+        throw "Association Error : parent instance should be saved";
       }
-      if (cb != null) {
-        ref = cb(ref);
-      }
-      return $firebaseArray.call(this, ref);
+      ref = this.$$parentRecord.$ref().child(this.$$association.name);
+      this.$$init(ref, cb);
+      return this.$list;
     }
 
     AssociationCollection.prototype.$create = function(data) {
-      return this.$$targetClass.$create(data).then((function(_this) {
+      return this.$$association.targetClass().$create(data).then((function(_this) {
         return function(resource) {
           return _this.$add(resource);
         };
@@ -336,17 +366,29 @@ angular.module('angularfire-resource').factory('Collection', function($firebaseA
     };
 
     AssociationCollection.prototype.$add = function(resource) {
-      return this.$$association.add(resource, {
-        to: this.$parentRecord
-      }).then((function(_this) {
+      return $firebaseUtils.resolve(resource.$isNew() ? resource.$save() : void 0).then((function(_this) {
+        return function() {
+          if (_this.$indexFor(resource.$id) !== -1) {
+            return $firebaseUtils.reject();
+          }
+        };
+      })(this)).then((function(_this) {
+        return function() {
+          return _this.$$association.add(resource, {
+            to: _this.$$parentRecord
+          });
+        };
+      })(this)).then((function(_this) {
         return function(resource) {
           if (_this.$$association.reverseAssociation()) {
-            return _this.$$association.reverseAssociation().add(_this.$parentRecord, {
+            return _this.$$association.reverseAssociation().add(_this.$$parentRecord, {
               to: resource
             });
           }
         };
-      })(this)).then(function() {
+      })(this))["catch"](function() {
+        return console.log("resource allready in the collection");
+      }).then(function() {
         return resource;
       });
     };
@@ -355,23 +397,22 @@ angular.module('angularfire-resource').factory('Collection', function($firebaseA
       return $firebaseArray.prototype.$remove.call(this, resource).then((function(_this) {
         return function() {
           if (_this.$$association.reverseAssociation()) {
-            return _this.$$association.reverseAssociation().remove(_this.$parentRecord, {
+            return _this.$$association.reverseAssociation().remove(_this.$$parentRecord, {
               from: resource
             });
           }
         };
+      })(this))["catch"]((function(_this) {
+        return function() {
+          return console.log(_this.$$association.name.camelize(true), _this.$$parentRecord.$id, _this.$$association.name, arguments);
+        };
       })(this)).then(function() {
         return resource;
-      })["catch"]((function(_this) {
-        return function() {
-          console.log(_this.$$association.name.camelize(true), _this.$parentRecord.$id, _this.$$association.name, arguments);
-          return resource;
-        };
-      })(this));
+      });
     };
 
     AssociationCollection.prototype.$$notify = function() {
-      console.log(this.$parentRecord.constructor.$name.camelize(true), this.$parentRecord.$id, this.$$association.name, arguments[0], arguments[1]);
+      console.log(this.$$parentRecord.constructor.$name.camelize(true), this.$$parentRecord.$id, this.$$association.name, arguments[0], arguments[1]);
       return $firebaseArray.prototype.$$notify.apply(this, arguments);
     };
 
@@ -391,13 +432,16 @@ angular.module('angularfire-resource').factory('FireResource', function($firebas
       resourceOptions = {};
     }
     return Resource = (function() {
-      var map;
+      var cbName, fn, i, len, map, ref1;
 
       map = {};
 
-      function Resource(ref, opts) {
+      function Resource(ref) {
         map[ref.key()] = this;
         $firebaseObject.call(this, ref);
+        this.$$isNew = false;
+        this.$$loaded = false;
+        this.$$setIncludes(resourceOptions.include);
         this.$loaded();
       }
 
@@ -415,36 +459,46 @@ angular.module('angularfire-resource').factory('FireResource', function($firebas
 
       Resource.$name = resourceOptions.name || resourceRef.key().replace(/s$/, '');
 
-      Resource.$query = function(ref) {
-        if (typeof ref === 'function') {
-          ref = ref(this.$ref());
-        }
-        return new Collection(Resource, ref);
+      Resource.$query = function(cb) {
+        return new Collection(Resource, cb);
       };
 
       Resource.$ref = function() {
         return resourceRef;
       };
 
-      Resource.$create = function(data) {
-        var def, ref;
+      Resource.$new = function(data) {
+        var instance;
         if (data == null) {
           data = {};
         }
-        data.createdAt = Firebase.ServerValue.TIMESTAMP;
-        def = $firebaseUtils.defer();
-        ref = Resource.$ref().ref().push($firebaseUtils.toJSON(data), $firebaseUtils.makeNodeResolver(def));
-        return def.promise.then(function() {
-          return new Resource(ref).$loaded();
-        });
+        instance = new this(this.$ref().push());
+        instance.$$isNew = true;
+        angular.extend(instance, data);
+        return instance;
       };
 
-      Resource.$find = function(key) {
-        if (map[key]) {
-          return map[key];
-        } else {
-          return new Resource(Resource.$ref().child(key));
+      Resource.$create = function(data) {
+        if (data == null) {
+          data = {};
         }
+        return this.$new(data).$save();
+      };
+
+      Resource.$find = function(key, opts) {
+        var inst;
+        if (opts == null) {
+          opts = {};
+        }
+        if (map[key]) {
+          inst = map[key];
+        } else {
+          inst = new Resource(Resource.$ref().child(key));
+        }
+        if (opts.includes != null) {
+          inst.$includes(opts.includes);
+        }
+        return inst;
       };
 
       Resource.hasMany = function(name, opts, cb) {
@@ -463,34 +517,79 @@ angular.module('angularfire-resource').factory('FireResource', function($firebas
         return this;
       };
 
+      ref1 = ['beforeCreate', 'beforeSave', 'afterSave', 'afterCreate'];
+      fn = function(cbName) {
+        Resource['_' + cbName] = [];
+        return Resource[cbName] = function(cb) {
+          Resource['_' + cbName].push(cb);
+          return this;
+        };
+      };
+      for (i = 0, len = ref1.length; i < len; i++) {
+        cbName = ref1[i];
+        fn(cbName);
+      }
+
+      Resource.prototype.$isNew = function() {
+        return this.$$isNew;
+      };
+
       Resource.prototype.$loaded = function() {
-        return firebaseObject.prototype.loaded.apply(this, arguments).then((function(_this) {
+        return $firebaseObject.prototype.$loaded.apply(this, arguments).then((function(_this) {
           return function() {
-            var i, len, name, promises;
-            promises = [];
-            for (i = 0, len = associations.length; i < len; i++) {
-              name = associations[i];
-              promises.push(_this["" + name]().$loaded());
-            }
-            return $firebaseUtils.allPromises(promises);
+            return _this.$$loadIncludes();
           };
         })(this)).then((function(_this) {
           return function() {
-            return _this.$$loaded = true;
+            _this.$$loaded = true;
+            return _this;
           };
         })(this));
       };
 
-      Resource.prototype.$includes = function(associations) {
-        this.$$includes = associations;
+      Resource.prototype.$$loadIncludes = function() {
+        var name, opts, promises, ref2;
+        promises = [];
+        ref2 = this.$$includes;
+        for (name in ref2) {
+          opts = ref2[name];
+          if (opts === true) {
+            promises.push(this["$" + name]().$loaded());
+          } else {
+            promises.push(this["$" + name](opts).$loaded());
+          }
+        }
+        return $firebaseUtils.allPromises(promises);
+      };
+
+      Resource.prototype.$$setIncludes = function(includes) {
+        var include, j, len1, results;
+        this.$$includes || (this.$$includes = {});
+        if (angular.isString(includes)) {
+          return this.$$includes[includes] = true;
+        } else if (angular.isArray(includes)) {
+          results = [];
+          for (j = 0, len1 = includes.length; j < len1; j++) {
+            include = includes[j];
+            results.push(this.$$setIncludes(include));
+          }
+          return results;
+        } else if (angular.isObject(includes)) {
+          return angular.extend(this.$$includes, includes);
+        }
+      };
+
+      Resource.prototype.$include = function(includes) {
+        this.$$setIncludes(includes);
+        this.$loaded();
         return this;
       };
 
       Resource.prototype.$destroy = function() {
-        var assoc, name, ref1;
-        ref1 = this.constructor._assoc;
-        for (name in ref1) {
-          assoc = ref1[name];
+        var assoc, name, ref2;
+        ref2 = this.constructor._assoc;
+        for (name in ref2) {
+          assoc = ref2[name];
           if (this['$$' + name] != null) {
             this['$$' + name].$destroy();
           }
@@ -505,13 +604,16 @@ angular.module('angularfire-resource').factory('FireResource', function($firebas
       };
 
       Resource.prototype.$$updated = function(snap) {
-        var assoc, name, old, ref1, result;
+        var assoc, name, old, ref2, result;
+        if (this.$$isNew && snap.val()) {
+          this.$$isNew = false;
+        }
         old = $firebaseUtils.toJSON(this);
         result = $firebaseObject.prototype.$$updated.apply(this, arguments);
-        ref1 = this.constructor._assoc;
-        for (name in ref1) {
-          assoc = ref1[name];
-          if (assoc.type === 'HasOne' && (this["$$" + name] != null) && this[assoc.$$conf.foreignKey] !== old[assoc.$$conf.foreignKey]) {
+        ref2 = this.constructor._assoc;
+        for (name in ref2) {
+          assoc = ref2[name];
+          if (assoc.type === 'HasOne' && (this["$$" + name] != null) && this[assoc.foreignKey] !== old[assoc.foreignKey]) {
             this["$$" + name] = null;
             this["$" + name]();
           }
@@ -520,11 +622,60 @@ angular.module('angularfire-resource').factory('FireResource', function($firebas
       };
 
       Resource.prototype.$save = function() {
-        return $firebaseObject.prototype.$save.apply(this, arguments).then((function(_this) {
+        return $firebaseUtils.resolve().then((function(_this) {
+          return function() {
+            if (_this.$isNew()) {
+              return _this.$$runCallbacks('beforeCreate');
+            }
+          };
+        })(this)).then((function(_this) {
+          return function() {
+            return _this.$$runCallbacks('beforeSave');
+          };
+        })(this)).then((function(_this) {
+          return function() {
+            if (_this.$isNew()) {
+              _this.createdAt = Firebase.ServerValue.TIMESTAMP;
+            }
+            return _this.updatedAt = Firebase.ServerValue.TIMESTAMP;
+          };
+        })(this)).then((function(_this) {
+          return function() {
+            return $firebaseObject.prototype.$save.apply(_this, arguments);
+          };
+        })(this)).then((function(_this) {
+          return function() {
+            if (_this.$isNew()) {
+              return _this.$$runCallbacks('afterCreate');
+            }
+          };
+        })(this)).then((function(_this) {
+          return function() {
+            return _this.$$runCallbacks('afterSave');
+          };
+        })(this)).then((function(_this) {
           return function() {
             return _this;
           };
         })(this));
+      };
+
+      Resource.prototype.$$runCallbacks = function(name) {
+        var cb, j, len1, promise, ref2;
+        promise = $firebaseUtils.resolve();
+        ref2 = this.constructor['_' + name];
+        for (j = 0, len1 = ref2.length; j < len1; j++) {
+          cb = ref2[j];
+          if (angular.isString(cb)) {
+            cb = this[cb];
+          }
+          promise = promise.then((function(_this) {
+            return function() {
+              return cb.call(_this);
+            };
+          })(this));
+        }
+        return promise;
       };
 
       Resource.prototype.$$notify = function() {

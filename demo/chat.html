@@ -14,7 +14,7 @@
             <span class="label label-default" ng-if="!user.presence">{{user.name}}</span>
             <span ng-if="$even && !$last">,</span>
           </span>
-          <!--<small class="close">x</small>-->
+          <span unread-messages user="$currentUser" conversation="conversation"></span>
           <span class="close-tab"><span class="glyphicon glyphicon-remove" ng-click="closeConv($event, conversation)"></span></span>
         </tab-heading>
         <!--<p ng-show="loading">loading</p>-->
@@ -23,7 +23,7 @@
           <blockquote class="message"
             ng-class="message.userId == $currentUser.$id ? 'blockquote-reverse' : ''"
             ng-repeat="message in conversation.$$messages | orderBy:createdAt:true"
-            message="message" user="$currentUser" last="$last" conversation="conversation"
+            message
             ng-if="message.$$loaded">
 
             <p>{{message.content}}</p>
@@ -40,12 +40,12 @@
           <!--Click on a user link to talk with him-->
         <!--</div>-->
 
-        <form name="form" id="new-message-form" ng-submit="sendMessage(conversation)">
+        <form name="form" id="new-message-form" ng-submit="saveMessage(conversation)">
           <div class="input-group">
             <span class="input-group-addon">
               <span class="glyphicon glyphicon-chevron-right" ng-class="$currentUser.presence ? 'text-primary' : ''"></span>
             </span>
-            <input type="text" class="form-control" ng-model="newMessage.content" ng-required="true"/>
+            <input type="text" class="form-control" ng-model="newMessage.content" auto-focus ng-required="true"/>
             <span class="input-group-btn">
               <button type="submit" class="btn btn-primary btn-submit">Send</button>
             </span>
@@ -72,8 +72,8 @@
         <span ng-if="$currentUser.$id == user.$id">(me)</span>
         <span class="label label-success" ng-if="user.presence">online</span>
         <span class="label label-default" ng-if="!user.presence">offline</span>
+        <span unread-messages user="$currentUser" conversation="$currentUser.$conversationWith(user)"></span>
       </a>
-      <span unread-messages user="$currentUser" conversation="$currentUser.$conversationWith(user)"></span>
     </div>
   </div>
 </div>
