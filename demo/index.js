@@ -17,7 +17,7 @@ angular.module('myApp', [
     return FireResource($firebase.child('users'), function(){
       this.hasMany('conversations', {inverseOf: 'users'});
       this.hasMany('activeConversations', {className: 'Conversation', inverseOf: 'activeAtUsers' });
-      this.hasOne('displayedConversation', {className: 'Conversation', inverseOf: 'displayedAtUsers', foreignKey: 'displayedConversationId' });
+      this.hasOne('displayedConversation', {className: 'Conversation', inverseOf: false, foreignKey: 'displayedConversationId' });
       this.prototype.$conversationWith = function(user){
         if (!this.$$conversations){
           throw '$conversationWith bad call: conversation need to be preloaded first'
@@ -36,7 +36,6 @@ angular.module('myApp', [
         init(new Firebase.util.Scroll(baseRef, '$value')).$next(5);
       });
       this.hasMany('activeAtUsers', {className: 'User', inverseOf: 'activeConversations' });
-      this.hasMany('displayedAtUsers', {className: 'User', inverseOf: 'displayedConversation' });
       //fixme : messages need to be preloaded
       this.prototype.$userUnreadMessages = function(user){
         if (!this.$$messages){
