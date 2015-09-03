@@ -3,10 +3,6 @@ Resource factory built on top of AngularFire
 >
 > This library is under active development and currently not production ready 
 >
->
-
-
-
 
 FireResource instances are extended [firebaseObject](https://www.firebase.com/docs/web/libraries/angular/api.html), so you'll find everything you're used to with angularfire, plus 
 + createdAt / updatedAt timestamps

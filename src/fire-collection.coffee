@@ -5,22 +5,30 @@ angular.module('angularfire-resource')
 
   # Base class for Collection
   #
-  # @param {Resource} targetClass the class of the model retrieved
-  # @param {Function} cb a function to customise the reference to be used (default to Resource.$ref())
-  #
-  # @example instanciate a collection of users
-  #   new Collection User
-  #
-  # @example instanciate a collection of some users
-  #   new Collection User, (baseRef, init) -> init(new Firebase.util.Scroll(baseRef, 'sortingProp')).$next(10)
+  # see {Collection#constructor}
   #
   class Collection
+
+    # Contructor of {Collection}
+    #
+    # @param {Resource} targetClass the class of the model retrieved
+    # @param {Function} cb a function to customise the reference to be used (default to Resource.$ref())
+    #
+    # @return {Array} the collection itself, which is an extended Array of instances
+    #
+    # @example instanciate a collection of users
+    #   new Collection User
+    #
+    # @example instanciate a collection of some users
+    #   new Collection User, (baseRef, init) -> init(new Firebase.util.Scroll(baseRef, 'sortingProp')).$next(10)
+    #
     constructor: (targetClass, cb) ->
       @$$targetClass = targetClass
       @$$init(@$$targetClass.$ref(), cb)
       return @$list
 
     # Internal function used to init the Collection
+    #
     $$init: (baseRef, cb) ->
       self = this
       init = (ref) ->

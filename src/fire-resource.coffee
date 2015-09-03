@@ -3,10 +3,24 @@ angular.module('angularfire-resource')
 .factory 'FireResource', ($firebaseObject, $firebaseUtils, Collection, AssociationFactory) ->
 
   (resourceRef, resourceOptions={}, callback) ->
+
     if angular.isFunction(resourceOptions)
       callback = resourceOptions
       resourceOptions = {}
 
+    # Base Resource Class
+    #
+    # Instanciated by the FireResource factory
+    #
+    # @param resourceRef {ref} firebase reference
+    # @param resourceOptions {Object} options (optional)
+    # @param callack {Function} optional function called in the context of the defined Resource (to add methods, relations, or override stuff)
+    # @return {Resource} the Resource class ready to be used by the angular factory
+    #
+    # @example How to create a basic User model
+    #   app.module('myApp').factory 'User', (FireResource, $firebase) ->
+    #     FireResource $firebase.child('users')
+    #
     class Resource
 
       map = {}
