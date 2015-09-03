@@ -8,23 +8,47 @@ angular.module('angularfire-resource')
       callback = resourceOptions
       resourceOptions = {}
 
-    # Base Resource Class
+
+    # Base resource class
     #
-    # Instanciated by the FireResource factory
+    # @note Resource classes are created by the FireResource factory
     #
     # @param resourceRef {ref} firebase reference
     # @param resourceOptions {Object} options (optional)
     # @param callack {Function} optional function called in the context of the defined Resource (to add methods, relations, or override stuff)
     # @return {Resource} the Resource class ready to be used by the angular factory
     #
-    # @example How to create a basic User model
+    # Below the different way to use the FireResource factory
+    #
+    # @example Basic model
     #   app.module('myApp').factory 'User', (FireResource, $firebase) ->
     #     FireResource $firebase.child('users')
+    #
+    # @example Chaining class method calls
+    #   factory 'User', (FireResource, $firebase) ->
+    #     FireResource $firebase.child('users')
+    #       .hasMany 'conversations'
+    #       .hasOne 'displayedConversation',
+    #         className: 'Conversation'
+    #         inverseOf: false
+    #
+    # @example Accessing the resource from within
+    #   factory 'User', (FireResource, $firebase) ->
+    #     FireResource $firebase.child('users'), ->
+    #       @hasMany 'conversations'
+    #       @hasOne 'displayedConversation',
+    #         className: 'Conversation'
+    #         inverseOf: false
+    #       @::myCostomInstanceMethod = -> "i'm custom"
+    #
+    # @See the README file
     #
     class Resource
 
       map = {}
-
+      #
+      # Resource constructor is called internally by {Resource.$find} or {Resource.$new}
+      #
       constructor: (ref) ->
         map[ref.key()]= this
         $firebaseObject.call this, ref
@@ -33,29 +57,59 @@ angular.module('angularfire-resource')
         @$$setIncludes(resourceOptions.include)
         @$loaded()
 
+      # @property Map storing the Resource associations instances
       @_assoc: {}
 
+      # Clear the resource map where are stored all the instances retrieved from firebase. Clearing the map destroy them all
       @clearMap: ->
         for key, instance of map
           instance.$destroy()
 
+      # @property Resource name
       @$name: resourceOptions.name or resourceRef.key().replace(/s$/,'')
 
+      # Query firebase on the {Resource.$ref}
+      # @param cb {Function} function to customize the ref, takes {Resrouce.$ref} and an init callback function that you have to call as parameters
+      # @return {Collection} instance of {Collection}
+      #
+      # @example Basic
+      #   User.$query()
+      #
+      # @example Using Firebase.util.Scroll
+      #   User.$query (baseRef, init) ->
+      #     init(new Firebase.util.Scroll baseRef, 'presence' ).$next(10)
+      #
       @$query: (cb) ->
         new Collection Resource, cb
 
+      # Base Firebase reference passed to the FireResource Factory
+      # @return {ref} firebase reference
       @$ref: ->
         resourceRef
 
+      # Resource instance builder
+      # @param data {Object} the instance attributes
+      # @return {Resource} instance
+      #
+      # NB: New resource instance cannot instanciate any {AssociationCollection}
+      #
       @$new: (data={}) ->
         instance = new this(@$ref().push())
         instance.$$isNew = true
         angular.extend instance, data
         instance
 
+      # Creates a resource from data
+      # @param data {object} resource data
+      # @return {Promise} instance
+      #
       @$create: (data={}) ->
         @$new(data).$save()
 
+      # Resource Getter
+      # @param {String} Firbase key of the instance
+      # @return {Resource} instance
+      #
       @$find: (key, opts={}) ->
         if map[key]
           inst = map[key]
@@ -64,11 +118,34 @@ angular.module('angularfire-resource')
         inst.$includes(opts.includes) if opts.includes?
         inst
 
-
+      # One to Many association builder
+      #
+      # @param {String} association name
+      # @param {Object} association option
+      # @option options {String} className targetted resource factory name, defaults to `name.camelize(true)`
+      # @option options {String} inverseOf inverse association, defaults to `Resource.$name`, if `false` association will be considered one sided
+      # @param {Function} callback function customize the association collection ref or add some method
+      # @return {Resource} the current resource
+      #
+      # @example
+      #   factory 'User', (FireResource, $firebase) ->
+      #     FireResource $firebase.child('users'), ->
+      #       @hasMany 'conversations'
+      #
+      #
       @hasMany: (name, opts={}, cb)->
         @_assoc[name] = new AssociationFactory.HasMany(this, name, opts, cb)
         this
 
+
+      # One to One association builder
+      # @param {String} name
+      # @param {Object} options
+      # @option options {String} className targetted resource factory name, defaults to `name.camelize(true)`
+      # @option options {String} foreignKey property used to store the associated instance key, defaults to `name + 'Id'`
+      # @option options {String} inverseOf inverse association, defaults to `Resource.$name`, if `false` association will be considered one sided
+      # @return {Resource} the current resource
+      #
       @hasOne: (name, opts = {}) ->
         @_assoc[name] = new AssociationFactory.HasOne(this, name, opts)
         this
@@ -82,9 +159,14 @@ angular.module('angularfire-resource')
             this
         )(cbName)
 
+
       $isNew: ->
         @$$isNew
 
+      # Ensure the instance and its included relations are loaded
+      #
+      # @return {promise} resolved with the instance resource
+      #
       $loaded: ->
         $firebaseObject::$loaded.apply(this, arguments)
           .then =>
@@ -92,6 +174,7 @@ angular.module('angularfire-resource')
           .then =>
             @$$loaded = true
             this
+
 
       $$loadIncludes: ->
         promises = []
@@ -111,7 +194,14 @@ angular.module('angularfire-resource')
         else if angular.isObject(includes)
           angular.extend @$$includes, includes
 
-
+      # Set the include association attached to the instance
+      #
+      # @return {resource} instance
+      #
+      # @example
+      #   User.$find(key).$include('messages').$loaded (user) ->
+      #     user.$messages().$$loaded == true
+      #
       $include: (includes) ->
         @$$setIncludes(includes)
         @$loaded()

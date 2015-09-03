@@ -1,24 +1,26 @@
 # angularfire-resource
-Resource factory built on top of AngularFire
->
-> This library is under active development and currently not production ready 
->
 
-FireResource instances are extended [firebaseObject](https://www.firebase.com/docs/web/libraries/angular/api.html), so you'll find everything you're used to with angularfire, plus 
+Resource factory built on top of AngularFire
+
+@note This library is under active development and currently not production ready 
+
+## Abstract
+
+Resource instances are extended [firebaseObject](https://www.firebase.com/docs/web/libraries/angular/api.html), so you'll find everything you're used to with firebase object, plus 
 + createdAt / updatedAt timestamps
 + hooks (beforeCreate, afterCreate, beforeSave, afterSave)
-+ ensure an instance is not retrieved 2 times from firebase
-+ handle associations (hasOne and hasMany, returns respectively a firebaseObject instance or an association collection)
-
++ a global instances map for each resource to ensure an instance is not retrieved 2 times from firebase
++ associations (hasOne, hasMany, hasAndBelongsToMany returning respectively a firebaseObject instance or association collections)
 
 AssociationCollection instances are extended [firebaseArray](https://www.firebase.com/docs/web/libraries/angular/api.html), plus 
-+ they are made of FireResource instances
-+ they can preload some of their instances relations (using $include)
-+ they deal nicely with the fireUtil librairy for pagination & infinite scrolling work
++ they are made of Resource instances
++ they can preload their own instances associations
++ they deal nicely with the [firebase-util librairy](https://github.com/firebase/firebase-util) for pagination & infinite scrolling work
 
 ## Usage
 
-Set up your relations into a model layer
+Add the 'angularfire-resource' module as a dependency to your application module, and then define your model classes and their relations 
+through the FireResource factory
 
 ```javascript
 
@@ -37,10 +39,13 @@ angular.module('myApp', ['angularfire-resource'])
   .factory('Conversation', function(FireResource, $firebase) {
     return FireResource($firebase.child('conversations'), function(){
       this.hasMany('users');
-      this.hasMany('messages', {storedAt: 'createdAtDesc' }, function(baseRef, init){ // customize the way you store foreign keys collection to be able to sort data within a relation
-        init(new Firebase.util.Scroll(baseRef, '$value')).$next(5); // use firebase util to handle the pagination 
+      // customize the way you store foreign keys to be able to sort your association collection
+      this.hasMany('messages', {storedAt: 'createdAtDesc' }, function(baseRef, init){
+        // use firebase util to handle the pagination
+        init(new Firebase.util.Scroll(baseRef, '$value')).$next(5);  
       });
-      this.beforeCreate(function(){        // hooks
+      // use hooks
+      this.beforeCreate(function(){        
         this.createdAtDesc = - Date.now()
       });
     });
@@ -48,7 +53,8 @@ angular.module('myApp', ['angularfire-resource'])
   
   .factory('Message', function(FireResource, $firebase) {
     return FireResource($firebase.child('messages'), function(){
-      this.hasOne('user', { inverseOf: false }); // no message foreign key into the user model
+      // define one sided association (ie here no message foreign key will be set into the user model)
+      this.hasOne('user', { inverseOf: false }); 
       this.hasOne('conversation');
     });
   })
@@ -89,23 +95,24 @@ root
     
 ```
 
-And now write some clean controllers :-)
+And now you can write some clean controllers :-)
 
 ```javascript
+
 angular.module('myApp')
 
-  // $currentUser is an instance of User retrieved from a resolve
+  // Let's asume $currentUser is an instance of User retrieved from a resolve
   .controller('ExamplesController', function($scope, Message, $currentUser){
     
     // $query on all ( rootUrl/users ) 
     $scope.allUsers = User.$query()
     
-    // $query on some customizing your ref
+    // $query on some, customizing your ref
     $scope.someUsers = User.$query(function(baseRef, init){
       init(new Firebase.util.Scroll(baseRef, 'presence')).$next(10)
     });
     
-    // use $next and $prev to access the scroll instance of your custom ref (if used)
+    // use $next and $prev to access the scroll instance of your custom ref (if firebase util is used)
     $scope.loadMoreUsers = function(){
       $scope.someUsers.$next(10)
     };
@@ -113,19 +120,22 @@ angular.module('myApp')
     // preload associations
     $scope.conversations = $currentUser.$conversations().$include('messages')
     
+    // Instanciate new model 
     $scope.newMessage = Message.$new()
     $scope.saveMessage = function(){
       angular.extend($scope.newMessage, { userId: $currentUser.$id });
 
-      //add an instance to a collection
+      // save a new instance by adding it to a collection 
       $currentUser.$displayedConversation().$messages().$add($scope.newMessage)
       $scope.newMessage = Message.$new();
     };
     
+    // do sequential operations
     $scope.createConversationWith = function(user) {
-      // do sequential operations
+      // create an instance into a collection
       return $currentUser.$conversations().$create()
         .then(function (conversation) {
+          // then add it to an other collection
           conversation.$users().$add(user);
         })
   })
@@ -133,58 +143,12 @@ angular.module('myApp')
 ```
 ## Demo
 
-To have a more in depth look over a practical case, check out the demo
+To have a more in depth look over a practical case, [check out the demo](http://itkin.github.io/angularfire-resource/demo/index.html)
 
-https://fireresourcetest.firebaseapp.com
+## API / Documentation
 
-## API
-
-### FireResource
-
-params : 
-
-- firebase reference, 
-- options 
-- callback function called in the context of the defined resource (to add methods, relations, or override stuff)
-
-#### Resource.hasMany
-
-Set a relation one to many
-
-params :
-- name : name of the relation
-- options
-  - `className` : the targetted class name, default is `name.replace(/s$/,'').camelize(true)`
-  - `inverseOf`: the inverse relation, default is `Resource.$ref().key().replace(/s$/,'')`, `false` not to maintain foreign key on the related model
-  - `storedAt`: string, object, array of function specifiying how the related instance will be stored in the parent model. Per default it will maintain a set of childKey: true  
-
-Defines the following methods into the parent class : 
-- resource.$name() : get the association array
-
-#### Resource.hasOne
-
-Set a relation one to one or one to many
-
-params :
-- name : name of the relation
-- options
-  - `className` : the targetted class name, default is `name.replace(/s$/,'').camelize(true)`
-  - `inverseOf`: the inverse relation, default is `Resource.$ref().key().replace(/s$/,'')`, `false` not to maintain foreign key on the related model
-  - `foreignKey`: specify the property name where the related instance $id will be stored on the Resource instance, default is `name.replace(/s$/,'')+'Id'`
-
-Defines the following function on the parent class prototype : 
-- $#{name} : get the associated Resource
-- $set#{name} : set the associated Resource
-
-
-[to be continued]
-
-## TODO
-
-- Close the enhancement issues
-- Write a readme
-- Polish the demo
-- Code some testing
+... [In progress here](http://itkin.github.io/angularfire-resource/doc/index.html)
+ 
 
 
 

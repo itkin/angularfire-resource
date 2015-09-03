@@ -35,14 +35,37 @@
       </table>
       <h2>Overview</h2>
       <div class='docstring'>
-  <p>Base Resource Class</p><p>Instanciated by the FireResource factory</p>
+  <div class='note'>
+    <strong>Note:</strong>
+    Resource classes are created by the FireResource factory 
+  </div>
+  <p>Base resource class</p><p>Below the different way to use the FireResource factory</p>
   <div class='examples'>
     <h3>Examples:</h3>
     <h4>
-      How to create a basic User model
+      Basic model
     </h4>
     <pre><code class='coffeescript'>app.module(&#39;myApp&#39;).factory &#39;User&#39;, (FireResource, $firebase) -&gt;
   FireResource $firebase.child(&#39;users&#39;)</code></pre>
+    <h4>
+      Chaining class method calls
+    </h4>
+    <pre><code class='coffeescript'>factory &#39;User&#39;, (FireResource, $firebase) -&gt;
+  FireResource $firebase.child(&#39;users&#39;)
+    .hasMany &#39;conversations&#39;
+    .hasOne &#39;displayedConversation&#39;,
+      className: &#39;Conversation&#39;
+      inverseOf: false</code></pre>
+    <h4>
+      Accessing the resource from within
+    </h4>
+    <pre><code class='coffeescript'>factory &#39;User&#39;, (FireResource, $firebase) -&gt;
+  FireResource $firebase.child(&#39;users&#39;), -&gt;
+    @hasMany &#39;conversations&#39;
+    @hasOne &#39;displayedConversation&#39;,
+      className: &#39;Conversation&#39;
+      inverseOf: false
+    @::myCostomInstanceMethod = -&gt; &quot;i&#39;m custom&quot;</code></pre>
   </div>
 </div>
 <div class='tags'>
@@ -90,6 +113,12 @@
       <span class='desc'>the Resource class ready to be used by the angular factory </span>
     </li>
   </ul>
+  <h3>See also:</h3>
+  <ul class='see'>
+    <li>
+      <a href='the'>README file</a>
+    </li>
+  </ul>
 </div>
       <h2>Variables Summary</h2>
       <dl class='constants'>
@@ -99,7 +128,11 @@
   </dt>
   <dd>
     <pre><code class='coffeescript'>{}</code></pre>
-    
+    <div class='docstring'>
+  <p>@property Map storing the Resource associations instances</p>
+</div>
+<div class='tags'>
+</div>
   </dd>
 </dl>
       <h2>Class Method Summary</h2>
@@ -113,83 +146,91 @@
       </a>
     </span>
     <span class='desc'>
+      Clear the resource map where are stored all the instances retrieved from firebase. 
     </span>
   </li>
   <li>
     <span class='signature'>
       <a href='#$query-static'>
         .
-(void)
+(Collection)
 <b>$query</b><span>(cb)</span>
       </a>
     </span>
     <span class='desc'>
+      Query firebase on the {Resource.$ 
     </span>
   </li>
   <li>
     <span class='signature'>
       <a href='#$ref-static'>
         .
-(void)
+(ref)
 <b>$ref</b><span>()</span>
       </a>
     </span>
     <span class='desc'>
+      Base Firebase reference passed to the FireResource Factory 
     </span>
   </li>
   <li>
     <span class='signature'>
       <a href='#$new-static'>
         .
-(void)
+(Resource)
 <b>$new</b><span>(data = {})</span>
       </a>
     </span>
     <span class='desc'>
+      Resource instance builder <p>NB: New resource instance cannot instanciate any <a href='../class/AssociationCollection.html'>AssociationCollection</a></p>
     </span>
   </li>
   <li>
     <span class='signature'>
       <a href='#$create-static'>
         .
-(void)
+(Promise)
 <b>$create</b><span>(data = {})</span>
       </a>
     </span>
     <span class='desc'>
+      Creates a resource from data 
     </span>
   </li>
   <li>
     <span class='signature'>
       <a href='#$find-static'>
         .
-(void)
+(Resource)
 <b>$find</b><span>(key, opts = {})</span>
       </a>
     </span>
     <span class='desc'>
+      Resource Getter 
     </span>
   </li>
   <li>
     <span class='signature'>
       <a href='#hasMany-static'>
         .
-(void)
+(Resource)
 <b>hasMany</b><span>(name, opts = {}, cb)</span>
       </a>
     </span>
     <span class='desc'>
+      One to Many association builder 
     </span>
   </li>
   <li>
     <span class='signature'>
       <a href='#hasOne-static'>
         .
-(void)
+(Resource)
 <b>hasOne</b><span>(name, opts = {})</span>
       </a>
     </span>
     <span class='desc'>
+      One to One association builder 
     </span>
   </li>
 </ul>
@@ -210,11 +251,12 @@
     <span class='signature'>
       <a href='#$loaded-dynamic'>
         #
-(void)
+(promise)
 <b>$loaded</b><span>()</span>
       </a>
     </span>
     <span class='desc'>
+      Ensure the instance and its included relations are loaded 
     </span>
   </li>
   <li>
@@ -243,11 +285,12 @@
     <span class='signature'>
       <a href='#$include-dynamic'>
         #
-(void)
+(resource)
 <b>$include</b><span>(includes)</span>
       </a>
     </span>
     <span class='desc'>
+      Set the include association attached to the instance 
     </span>
   </li>
   <li>
@@ -328,70 +371,366 @@
 <b>clearMap</b><span>()</span>
       <br>
     </p>
-    
+    <div class='docstring'>
+  <p>Clear the resource map where are stored all the instances retrieved from firebase. Clearing the map destroy them all</p>
+</div>
+<div class='tags'>
+</div>
   </div>
   <div class='method_details'>
     <p class='signature' id='$query-static'>
       .
-(void)
+(Collection)
 <b>$query</b><span>(cb)</span>
       <br>
     </p>
-    
+    <div class='docstring'>
+  <p>Query firebase on the <a href='../class/Resource.html#$ref-static'>Resource.$ref</a></p>
+  <div class='examples'>
+    <h3>Examples:</h3>
+    <h4>
+      Basic
+    </h4>
+    <pre><code class='coffeescript'>User.$query()</code></pre>
+    <h4>
+      Using Firebase.util.Scroll
+    </h4>
+    <pre><code class='coffeescript'>User.$query (baseRef, init) -&gt;
+  init(new Firebase.util.Scroll baseRef, &#39;presence&#39; ).$next(10)</code></pre>
+  </div>
+</div>
+<div class='tags'>
+  <h3>Parameters:</h3>
+  <ul class='param'>
+    <li>
+      <span class='name'>cb</span>
+      <span class='type'>
+        (
+          <tt>Function</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>function to customize the ref, takes {Resrouce.$ref} and an init callback function that you have to call as parameters </span>
+    </li>
+  </ul>
+  <h3>Returns:</h3>
+  <ul class='return'>
+    <li>
+      <span class='type'></span>
+      (
+        <tt><a href='../class/Collection.html'>Collection</a></tt>
+      )
+      &mdash;
+      <span class='desc'>instance of <a href='../class/Collection.html'>Collection</a> </span>
+    </li>
+  </ul>
+</div>
   </div>
   <div class='method_details'>
     <p class='signature' id='$ref-static'>
       .
-(void)
+(ref)
 <b>$ref</b><span>()</span>
       <br>
     </p>
-    
+    <div class='docstring'>
+  <p>Base Firebase reference passed to the FireResource Factory</p>
+</div>
+<div class='tags'>
+  <h3>Returns:</h3>
+  <ul class='return'>
+    <li>
+      <span class='type'></span>
+      (
+        <tt>ref</tt>
+      )
+      &mdash;
+      <span class='desc'>firebase reference </span>
+    </li>
+  </ul>
+</div>
   </div>
   <div class='method_details'>
     <p class='signature' id='$new-static'>
       .
-(void)
+(Resource)
 <b>$new</b><span>(data = {})</span>
       <br>
     </p>
-    
+    <div class='docstring'>
+  <p>Resource instance builder</p><p>NB: New resource instance cannot instanciate any <a href='../class/AssociationCollection.html'>AssociationCollection</a></p>
+</div>
+<div class='tags'>
+  <h3>Parameters:</h3>
+  <ul class='param'>
+    <li>
+      <span class='name'>data</span>
+      <span class='type'>
+        (
+          <tt>Object</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>the instance attributes </span>
+    </li>
+  </ul>
+  <h3>Returns:</h3>
+  <ul class='return'>
+    <li>
+      <span class='type'></span>
+      (
+        <tt><a href='../class/Resource.html'>Resource</a></tt>
+      )
+      &mdash;
+      <span class='desc'>instance </span>
+    </li>
+  </ul>
+</div>
   </div>
   <div class='method_details'>
     <p class='signature' id='$create-static'>
       .
-(void)
+(Promise)
 <b>$create</b><span>(data = {})</span>
       <br>
     </p>
-    
+    <div class='docstring'>
+  <p>Creates a resource from data</p>
+</div>
+<div class='tags'>
+  <h3>Parameters:</h3>
+  <ul class='param'>
+    <li>
+      <span class='name'>data</span>
+      <span class='type'>
+        (
+          <tt>object</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>resource data </span>
+    </li>
+  </ul>
+  <h3>Returns:</h3>
+  <ul class='return'>
+    <li>
+      <span class='type'></span>
+      (
+        <tt>Promise</tt>
+      )
+      &mdash;
+      <span class='desc'>instance </span>
+    </li>
+  </ul>
+</div>
   </div>
   <div class='method_details'>
     <p class='signature' id='$find-static'>
       .
-(void)
+(Resource)
 <b>$find</b><span>(key, opts = {})</span>
       <br>
     </p>
-    
+    <div class='docstring'>
+  <p>Resource Getter</p>
+</div>
+<div class='tags'>
+  <h3>Parameters:</h3>
+  <ul class='param'>
+    <li>
+      <span class='name'>Firbase</span>
+      <span class='type'>
+        (
+          <tt>String</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>key of the instance </span>
+    </li>
+  </ul>
+  <h3>Returns:</h3>
+  <ul class='return'>
+    <li>
+      <span class='type'></span>
+      (
+        <tt><a href='../class/Resource.html'>Resource</a></tt>
+      )
+      &mdash;
+      <span class='desc'>instance </span>
+    </li>
+  </ul>
+</div>
   </div>
   <div class='method_details'>
     <p class='signature' id='hasMany-static'>
       .
-(void)
+(Resource)
 <b>hasMany</b><span>(name, opts = {}, cb)</span>
       <br>
     </p>
-    
+    <div class='docstring'>
+  <p>One to Many association builder</p>
+  <div class='examples'>
+    <h3>Examples:</h3>
+    <h4>
+      
+    </h4>
+    <pre><code class='coffeescript'>factory &#39;User&#39;, (FireResource, $firebase) -&gt;
+  FireResource $firebase.child(&#39;users&#39;), -&gt;
+    @hasMany &#39;conversations&#39;</code></pre>
+  </div>
+</div>
+<div class='tags'>
+  <h3>Parameters:</h3>
+  <ul class='param'>
+    <li>
+      <span class='name'>association</span>
+      <span class='type'>
+        (
+          <tt>String</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>name </span>
+    </li>
+    <li>
+      <span class='name'>association</span>
+      <span class='type'>
+        (
+          <tt>Object</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>option </span>
+    </li>
+    <li>
+      <span class='name'>callback</span>
+      <span class='type'>
+        (
+          <tt>Function</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>function customize the association collection ref or add some method </span>
+    </li>
+  </ul>
+  <h3>
+    Options Hash:
+    (options):
+  </h3>
+  <ul class='options'>
+    <li>
+      <span class='name'>className</span>
+      <span class='type'>
+        (
+          <tt>String</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>targetted resource factory name, defaults to <code>name.camelize(true)</code> </span>
+    </li>
+    <li>
+      <span class='name'>inverseOf</span>
+      <span class='type'>
+        (
+          <tt>String</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>inverse association, defaults to <code>Resource.$name</code>, if <code>false</code> association will be considered one sided </span>
+    </li>
+  </ul>
+  <h3>Returns:</h3>
+  <ul class='return'>
+    <li>
+      <span class='type'></span>
+      (
+        <tt><a href='../class/Resource.html'>Resource</a></tt>
+      )
+      &mdash;
+      <span class='desc'>the current resource </span>
+    </li>
+  </ul>
+</div>
   </div>
   <div class='method_details'>
     <p class='signature' id='hasOne-static'>
       .
-(void)
+(Resource)
 <b>hasOne</b><span>(name, opts = {})</span>
       <br>
     </p>
-    
+    <div class='docstring'>
+  <p>One to One association builder</p>
+</div>
+<div class='tags'>
+  <h3>Parameters:</h3>
+  <ul class='param'>
+    <li>
+      <span class='name'>name</span>
+      <span class='type'>
+        (
+          <tt>String</tt>
+        )
+      </span>
+    </li>
+    <li>
+      <span class='name'>options</span>
+      <span class='type'>
+        (
+          <tt>Object</tt>
+        )
+      </span>
+    </li>
+  </ul>
+  <h3>
+    Options Hash:
+    (options):
+  </h3>
+  <ul class='options'>
+    <li>
+      <span class='name'>className</span>
+      <span class='type'>
+        (
+          <tt>String</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>targetted resource factory name, defaults to <code>name.camelize(true)</code> </span>
+    </li>
+    <li>
+      <span class='name'>foreignKey</span>
+      <span class='type'>
+        (
+          <tt>String</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>property used to store the associated instance key, defaults to <code>name + &#39;Id&#39;</code> </span>
+    </li>
+    <li>
+      <span class='name'>inverseOf</span>
+      <span class='type'>
+        (
+          <tt>String</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>inverse association, defaults to <code>Resource.$name</code>, if <code>false</code> association will be considered one sided </span>
+    </li>
+  </ul>
+  <h3>Returns:</h3>
+  <ul class='return'>
+    <li>
+      <span class='type'></span>
+      (
+        <tt><a href='../class/Resource.html'>Resource</a></tt>
+      )
+      &mdash;
+      <span class='desc'>the current resource </span>
+    </li>
+  </ul>
+</div>
   </div>
 </div>
       <h2>Constructor Details</h2>
@@ -403,7 +742,11 @@
 <b>constructor</b><span>(ref)</span>
       <br>
     </p>
-    
+    <div class='docstring'>
+  <p>Resource constructor is called internally by <a href='../class/Resource.html#$find-static'>Resource.$find</a> or <a href='../class/Resource.html#$new-static'>Resource.$new</a></p>
+</div>
+<div class='tags'>
+</div>
   </div>
 </div>
       <h2>Instance Method Details</h2>
@@ -420,11 +763,26 @@
   <div class='method_details'>
     <p class='signature' id='$loaded-dynamic'>
       #
-(void)
+(promise)
 <b>$loaded</b><span>()</span>
       <br>
     </p>
-    
+    <div class='docstring'>
+  <p>Ensure the instance and its included relations are loaded</p>
+</div>
+<div class='tags'>
+  <h3>Returns:</h3>
+  <ul class='return'>
+    <li>
+      <span class='type'></span>
+      (
+        <tt>promise</tt>
+      )
+      &mdash;
+      <span class='desc'>resolved with the instance resource </span>
+    </li>
+  </ul>
+</div>
   </div>
   <div class='method_details'>
     <p class='signature' id='$$loadIncludes-dynamic'>
@@ -447,11 +805,34 @@
   <div class='method_details'>
     <p class='signature' id='$include-dynamic'>
       #
-(void)
+(resource)
 <b>$include</b><span>(includes)</span>
       <br>
     </p>
-    
+    <div class='docstring'>
+  <p>Set the include association attached to the instance</p>
+  <div class='examples'>
+    <h3>Examples:</h3>
+    <h4>
+      
+    </h4>
+    <pre><code class='coffeescript'>User.$find(key).$include(&#39;messages&#39;).$loaded (user) -&gt;
+  user.$messages().$$loaded == true</code></pre>
+  </div>
+</div>
+<div class='tags'>
+  <h3>Returns:</h3>
+  <ul class='return'>
+    <li>
+      <span class='type'></span>
+      (
+        <tt>resource</tt>
+      )
+      &mdash;
+      <span class='desc'>instance </span>
+    </li>
+  </ul>
+</div>
   </div>
   <div class='method_details'>
     <p class='signature' id='$destroy-dynamic'>
@@ -518,7 +899,7 @@
 </div>
     </div>
     <div id='footer'>
-  September 03, 15 13:35:56 by
+  September 03, 15 23:26:02 by
   <a href='https://github.com/coffeedoc/codo' title='CoffeeScript API documentation generator'>
     Codo
   </a>
