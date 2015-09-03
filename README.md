@@ -1,13 +1,18 @@
 # angularfire-resource
 Resource factory built on top of AngularFire
+>
+> This library is under active development and currently not production ready 
+>
+>
 
-> This library is under active development and currently not production ready yet
 
-A FireResource instance is an extended [firebaseObject](https://www.firebase.com/docs/web/libraries/angular/api.html), so you'll find everything you're used to with angularfire, plus 
+
+
+FireResource instances are extended [firebaseObject](https://www.firebase.com/docs/web/libraries/angular/api.html), so you'll find everything you're used to with angularfire, plus 
 + createdAt / updatedAt timestamps
 + hooks (beforeCreate, afterCreate, beforeSave, afterSave)
-+ a dictionary map to ensure an instance is not retrieved 2 times from firebase
-+ associations (hasOne and hasMany, returns respectively a firebaseObject instance or an association collection)
++ ensure an instance is not retrieved 2 times from firebase
++ handle associations (hasOne and hasMany, returns respectively a firebaseObject instance or an association collection)
 
 
 AssociationCollection instances are extended [firebaseArray](https://www.firebase.com/docs/web/libraries/angular/api.html), plus 
