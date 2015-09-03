@@ -29,128 +29,114 @@ angular.module('angularfire-resource')
       throwError(Resource, type, name, 'foreignKey')
     true
 
-  HasMany = (Resource, name, opts={}, cb) ->
-    @type = 'HasMany'
-    @name = name
+  class HasManyAssociation
 
-    opts.inverseOf or= Resource.$name.replace(/s$/,'') unless opts.inverseOf == false
-    opts.className or= name.replace(/s$/,'').camelize(true)
+    constructor: (Resource, name, opts={}, cb) ->
+      @Resource = Resource
+      @type = 'HasMany'
+      @name = name
+      self = this
 
-    ensure_options(Resource, @type, name, opts)
+      opts.inverseOf or= @Resource.$name.replace(/s$/,'') unless opts.inverseOf == false
+      opts.className or= name.replace(/s$/,'').camelize(true)
+      ensure_options(@Resource, @type, name, opts)
+      angular.extend(this, opts)
 
-    @reverseAssociation = ->
-      $injector.get(opts.className)._assoc[opts.inverseOf] if opts.inverseOf
+      @Resource::[publicKey name] = (newCb) ->
+        if newCb or not @[privateKey name]
+          @[privateKey name].$destroy() if @[privateKey name]
+          @[privateKey name] = new AssociationCollection self, this, (newCb or cb)
+        else
+          @[privateKey name]
 
-    @targetClass = ->
-      $injector.get opts.className
+    reverseAssociation: ->
+      $injector.get(@className)._assoc[@inverseOf] if @inverseOf
 
-    self = this
+    targetClass: ->
+      $injector.get @className
 
-    Resource::[publicKey name] = (newCb) ->
-      if newCb or not @[privateKey name]
-        @[privateKey name].$destroy() if @[privateKey name]
-        @[privateKey name] = new AssociationCollection self, this, (newCb or cb)
-      else
-        @[privateKey name]
-
-    @remove = (resource, params) ->
+    remove: (resource, params) ->
       def = $firebaseUtils.defer()
-      Resource.$ref().child(getResourceId(params.from)).child(name).child(getResourceId(resource)).set(null, $firebaseUtils.makeNodeResolver(def))
+      @Resource.$ref().child(getResourceId(params.from)).child(name).child(getResourceId(resource)).set(null, $firebaseUtils.makeNodeResolver(def))
       def.promise.then -> resource
 
-    @add = (resource, params) ->
+    add: (resource, params) ->
       def = $firebaseUtils.defer()
 
-      if angular.isArray(opts.storedAt)
+      if angular.isArray(@storedAt)
         value = {}
-        for key in opts
+        for key in @storedAt
           value[key] = if angular.isFunction(resource[key]) then resource[key]() else resource[key]
-      else if angular.isFunction(opts.storedAt)
-        value = opts.storedAt.call(resource, params.to)
-      else if angular.isString(opts.storedAt)
-        value = if angular.isFunction(resource[opts.storedAt]) then resource[opts.storedAt]() else resource[opts.storedAt]
+      else if angular.isFunction(@storedAt)
+        value = @storedAt.call(resource, params.to)
+      else if angular.isString(@storedAt)
+        value = if angular.isFunction(resource[@storedAt]) then resource[@storedAt]() else resource[@storedAt]
       else
         value = true
 
-      Resource.$ref().child(getResourceId(params.to)).child(name).child(getResourceId(resource)).set(value, $firebaseUtils.makeNodeResolver(def))
+      @Resource.$ref().child(getResourceId(params.to)).child(@name).child(getResourceId(resource)).set(value, $firebaseUtils.makeNodeResolver(def))
       def.promise.then -> resource
 
-    this
 
-  HasOne = (Resource, name, opts={}) ->
-    @type = 'HasOne'
-    @name = name
 
-    opts.inverseOf  or= Resource.$name unless opts.inverseOf == false
-    opts.className  or= name.camelize(true)
-    opts.foreignKey or= name + 'Id'
+  class HasOneAssociation
 
-    ensure_options(Resource, @type, name, opts)
+    constructor: (Resource, name, opts={}) ->
+      @Resource = Resource
+      @type = 'HasOne'
+      @name = name
 
-    angular.extend(this, opts)
+      opts.inverseOf  or= Resource.$name unless opts.inverseOf == false
+      opts.className  or= name.camelize(true)
+      opts.foreignKey or= name + 'Id'
 
-    @targetClass = ->
-      $injector.get @className
+      ensure_options(Resource, @type, name, opts)
 
-    reverseAssociation = ->
-      $injector.get(opts.className)._assoc[opts.inverseOf] if opts.inverseOf
+      angular.extend(this, opts)
 
-    @remove = (resource, params) ->
-      def = $firebaseUtils.defer()
-      Resource.$ref().child(getResourceId(params.from)).child(opts.foreignKey).once 'value', (snap)->
-        if snap.val() isnt resource.$id
-          snap.ref().set(null, $firebaseUtils.makeNodeResolver(def))
-      def.promise.then -> resource
+      self = this
 
-    @add = (resource, params) ->
-      def = $firebaseUtils.defer()
-      Resource.$ref().child(getResourceId(params.to)).child(opts.foreignKey).set(getResourceId(resource), $firebaseUtils.makeNodeResolver(def))
-      def.promise.then -> resource
+      Resource::[publicKey name] = ->
+        if @[self.foreignKey]?
+          @[privateKey name] or= self.targetClass().$find(@[self.foreignKey])
+        else
+          null
 
-    association = this
+      # self builder (Record the new instance and link it to the current one)
+      Resource::[publicKey "create#{name.camelize(true)}"] = (data) ->
+        self.targetClass().$create(data).then (resource) =>
+          @[publicKey "set#{name.camelize(true)}"](resource)
 
-    Resource::[publicKey name] = ->
-      klass = $injector.get opts.className
-      if @[opts.foreignKey]?
-        @[privateKey name] or= klass.$find(@[opts.foreignKey])
-      else
-        null
+      Resource::[publicKey "set#{name.camelize(true)}"] = (newResource) ->
+        oldResourceId = @[self.foreignKey]
 
-    # association builder (Record the new instance and link it to the current one)
-    Resource::[publicKey "create#{name.camelize(true)}"] = (data) ->
-      klass = $injector.get(opts.className)
-      klass.$create(data).then (resource) =>
-        @[publicKey "set#{name.camelize(true)}"](resource)
+        newResourceId = if angular.isObject(newResource) then newResource.$id else newResource
 
-    Resource::[publicKey "set#{name.camelize(true)}"] = (newResource) ->
-      oldResourceId = @[opts.foreignKey]
+        newResource = if angular.isObject(newResource)
+          newResource
+        else if newResource?
+          self.targetClass().$find(newResource)
+        else
+          null
 
-      newResourceId = if angular.isObject(newResource) then newResource.$id else newResource
+        $firebaseUtils.resolve(oldResourceId == newResourceId)
 
-      newResource = if angular.isObject(newResource)
-        newResource
-      else if newResource?
-        $injector.get(opts.className).$find(newResource)
-      else
-        null
-
-      $firebaseUtils.resolve(oldResourceId == newResourceId)
         .then (same) ->
           $firebaseUtils.reject() if same
 
         #update the foreign key and the cached assoc
         .then =>
-          @[opts.foreignKey] = newResourceId
+          @[self.foreignKey] = newResourceId
           @[privateKey name] = newResource #resource or null
-          association.add(newResource, to: this)
+          self.add(newResource, to: this)
 
         #remove this from old resource if old resource
         .then =>
-          reverseAssociation().remove(this, from: oldResourceId) if oldResourceId and reverseAssociation()
+          self.reverseAssociation().remove(this, from: oldResourceId) if oldResourceId and self.reverseAssociation()
 
         #add new resource to this if new resource
         .then =>
-          reverseAssociation().add(this, to: newResource) if newResource and reverseAssociation()
+          self.reverseAssociation().add(this, to: newResource) if newResource and self.reverseAssociation()
 
         .then =>
           newResource
@@ -158,8 +144,26 @@ angular.module('angularfire-resource')
         # when no change has to be made, just
         .catch ->
           newResource
-    this
 
-  HasOne:   HasOne
-  HasMany:  HasMany
+    reverseAssociation: ->
+      @targetClass()._assoc[@inverseOf] if @inverseOf
+
+    targetClass: ->
+      $injector.get(@className)
+
+    remove: (resource, params) ->
+      def = $firebaseUtils.defer()
+      @Resource.$ref().child(getResourceId(params.from)).child(@foreignKey).once 'value', (snap)->
+        if snap.val() isnt resource.$id
+          snap.ref().set(null, $firebaseUtils.makeNodeResolver(def))
+      def.promise.then -> resource
+
+    add: (resource, params) ->
+      def = $firebaseUtils.defer()
+      @Resource.$ref().child(getResourceId(params.to)).child(@foreignKey).set(getResourceId(resource), $firebaseUtils.makeNodeResolver(def))
+      def.promise.then -> resource
+
+
+  HasOneAssociation:   HasOneAssociation
+  HasManyAssociation:  HasManyAssociation
 

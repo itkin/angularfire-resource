@@ -146,15 +146,16 @@ angular.module('angularfire-resource')
     # We do not use $save to save a $$notify cb
     $add: (resource) ->
       $firebaseUtils.resolve( resource.$save() if resource.$isNew() )
-        .then =>
-          $firebaseUtils.reject() if @$indexFor(resource.$id) isnt -1
-        .then =>
-          @$$association.add(resource, to: @$$parentRecord)
-        .then (resource) =>
-          @$$association.reverseAssociation().add(@$$parentRecord, to: resource) if @$$association.reverseAssociation()
-        .catch ->
-          console.log("resource allready in the collection")
-        .then -> resource
+      .then =>
+        $firebaseUtils.reject() if @$indexFor(resource.$id) isnt -1
+      .then =>
+        @$$association.add(resource, to: @$$parentRecord)
+      .then (resource) =>
+        @$$association.reverseAssociation().add(@$$parentRecord, to: resource) if @$$association.reverseAssociation()
+      .catch ->
+        console.log("resource allready in the collection")
+      .then ->
+        resource
 
     $remove: (resource) ->
       $firebaseArray::$remove.call(this, resource)

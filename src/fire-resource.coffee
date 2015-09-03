@@ -134,7 +134,7 @@ angular.module('angularfire-resource')
       #
       #
       @hasMany: (name, opts={}, cb)->
-        @_assoc[name] = new AssociationFactory.HasMany(this, name, opts, cb)
+        @_assoc[name] = new AssociationFactory.HasManyAssociation(this, name, opts, cb)
         this
 
 
@@ -147,7 +147,7 @@ angular.module('angularfire-resource')
       # @return {Resource} the current resource
       #
       @hasOne: (name, opts = {}) ->
-        @_assoc[name] = new AssociationFactory.HasOne(this, name, opts)
+        @_assoc[name] = new AssociationFactory.HasOneAssociation(this, name, opts)
         this
 
 
