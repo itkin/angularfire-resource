@@ -3,11 +3,19 @@ Resource factory built on top of AngularFire
 
 > This library is under active development and currently not production ready yet
 
-## Demo
+A FireResource instance is an extended [firebaseObject](https://www.firebase.com/docs/web/libraries/angular/api.html), so you'll find everything you're used to with angularfire 
++ createdAt / updatedAt timestamps
++ hooks (beforeCreate, afterCreate, beforeSave, afterSave)
++ a dictionary map to ensure an instance is not retrieved 2 times from firebase
++ associations (hasOne and hasMany, returns respectively a firebaseObject instance or an association collection)
 
-https://fireresourcetest.firebaseapp.com
 
-## Purpose
+AssociationCollection instances are extended [firebaseArray](https://www.firebase.com/docs/web/libraries/angular/api.html) 
++ they are made of FireResource instances
++ they can preload some of their instances relations (using $include)
++ they deal nicely with the fireUtil librairy for pagination / infinite scrolling work
+
+## Usage
 
 Set up your relations into a model layer
 
@@ -46,7 +54,7 @@ angular.module('myApp', ['angularfire-resource'])
   
 ```
 
-The above code will maintain a deserialize data model with duplicated foreign keys, to allow security enforcement and easy admin queries.
+The above code will maintain a deserialized data model with duplicated foreign keys, to allow security enforcement and easy admin queries.
 
 ```
 root
@@ -80,7 +88,7 @@ root
     
 ```
 
-And now write some clean controllers
+And now write some clean controllers :-)
 
 ```javascript
 angular.module('myApp')
@@ -122,18 +130,11 @@ angular.module('myApp')
   })
     
 ```
+## Demo
 
-FireResource instances are extended [firebaseObjects](https://www.firebase.com/docs/web/libraries/angular/api.html), so you'll find everything you're used to with firebase 
-+ createdAt / updatedAt timestamps
-+ hooks (beforeCreate, afterCreate, beforeSave, afterSave)
-+ associations (association name prefixed by "$")
-+ a dictionary map to ensure an instance is not retrieved 2 times from firebase
+To have a more in depth look over a practical case, check out the demo
 
-AssociationCollection instances are extended [firebaseArrays](https://www.firebase.com/docs/web/libraries/angular/api.html) 
-+ they are made of FireResource instances
-+ they can preload some of their instance relations (using $include)
-+ they deal nicely with the fireUtil librairy for pagination / infinite scrolling work
-
+https://fireresourcetest.firebaseapp.com
 
 ## API
 
@@ -145,7 +146,7 @@ params :
 - options 
 - callback function called in the context of the defined resource (to add methods, relations, or override stuff)
 
-#### Resource.HasMany
+#### Resource.hasMany
 
 Set a relation one to many
 
@@ -159,7 +160,7 @@ params :
 Defines the following methods into the parent class : 
 - resource.$name() : get the association array
 
-#### Resource.HasOne
+#### Resource.hasOne
 
 Set a relation one to one or one to many
 
