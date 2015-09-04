@@ -33,6 +33,11 @@
   "directories": {
     "lib": "dist"
   },
+  "scripts":{
+    "doc": "git checkout gh-pages && git merge master && gulp coffee && codo src/ && git push gh-pages && git checkout master",
+    "version": "gulp coffee",
+    "postversion": "git push && git push --tags"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/itkin/angularfire-resource.git"
