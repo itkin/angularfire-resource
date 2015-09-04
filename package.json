@@ -1,12 +1,12 @@
 {
   "name": "angularfire-resource",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Resource factory built on top of AngularFire",
   "main": "./dist/angularfire-resource.js",
   "scripts": {
-    "doc": "git checkout gh-pages && git merge master -X theirs && codo src/ && git add --all && git commit -a -m 'doc' && git push origin gh-pages && git checkout master",
+    "doc": "git checkout gh-pages && git merge master && gulp coffee && codo src/ && git push gh-pages && git checkout master",
     "version": "gulp coffee",
-    "postversion": "git push origin master --tags"
+    "postversion": "git push && git push --tags"
   },
   "author": "nicolas.papon@gmail.com",
   "license": "ISC",
@@ -32,11 +32,6 @@
   },
   "directories": {
     "lib": "dist"
-  },
-  "scripts":{
-    "doc": "git checkout gh-pages && git merge master && gulp coffee && codo src/ && git push gh-pages && git checkout master",
-    "version": "gulp coffee",
-    "postversion": "git push && git push --tags"
   },
   "repository": {
     "type": "git",
