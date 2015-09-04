@@ -6,7 +6,7 @@
   "scripts": {
     "doc": "git checkout gh-pages && git merge master && gulp coffee && codo src/ && git push gh-pages && git checkout master",
     "version": "gulp coffee",
-    "postversion": "git push && git push --tags"
+    "postversion": "git push origin master --tags"
   },
   "author": "nicolas.papon@gmail.com",
   "license": "ISC",
