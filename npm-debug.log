@@ -1,0 +1,36 @@
+0 info it worked if it ends with ok
+1 verbose cli [ 'node', '/usr/local/bin/npm', 'run', 'doc' ]
+2 info using npm@2.12.1
+3 info using node@v0.12.7
+4 verbose node symlink /usr/local/bin/node
+5 verbose run-script [ 'predoc', 'doc', 'postdoc' ]
+6 info predoc angularfire-resource@0.0.3
+7 info doc angularfire-resource@0.0.3
+8 verbose unsafe-perm in lifecycle true
+9 info angularfire-resource@0.0.3 Failed to exec doc script
+10 verbose stack Error: angularfire-resource@0.0.3 doc: `git checkout gh-pages && git merge master -X theirs && codo src/ && git add --all &&  git commit -a -m 'updated doc' && git push gh-pages && git checkout master`
+10 verbose stack Exit status 128
+10 verbose stack     at EventEmitter.<anonymous> (/usr/local/lib/node_modules/npm/lib/utils/lifecycle.js:213:16)
+10 verbose stack     at EventEmitter.emit (events.js:110:17)
+10 verbose stack     at ChildProcess.<anonymous> (/usr/local/lib/node_modules/npm/lib/utils/spawn.js:24:14)
+10 verbose stack     at ChildProcess.emit (events.js:110:17)
+10 verbose stack     at maybeClose (child_process.js:1015:16)
+10 verbose stack     at Process.ChildProcess._handle.onexit (child_process.js:1087:5)
+11 verbose pkgid angularfire-resource@0.0.3
+12 verbose cwd /Users/nicolas/web/angularfire-resource
+13 error Darwin 14.4.0
+14 error argv "node" "/usr/local/bin/npm" "run" "doc"
+15 error node v0.12.7
+16 error npm  v2.12.1
+17 error code ELIFECYCLE
+18 error angularfire-resource@0.0.3 doc: `git checkout gh-pages && git merge master -X theirs && codo src/ && git add --all &&  git commit -a -m 'updated doc' && git push gh-pages && git checkout master`
+18 error Exit status 128
+19 error Failed at the angularfire-resource@0.0.3 doc script 'git checkout gh-pages && git merge master -X theirs && codo src/ && git add --all &&  git commit -a -m 'updated doc' && git push gh-pages && git checkout master'.
+19 error This is most likely a problem with the angularfire-resource package,
+19 error not with npm itself.
+19 error Tell the author that this fails on your system:
+19 error     git checkout gh-pages && git merge master -X theirs && codo src/ && git add --all &&  git commit -a -m 'updated doc' && git push gh-pages && git checkout master
+19 error You can get their info via:
+19 error     npm owner ls angularfire-resource
+19 error There is likely additional logging output above.
+20 verbose exit [ 1, true ]
