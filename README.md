@@ -147,7 +147,7 @@ To have a more in depth look over a practical case, [check out the demo](http://
 
 ## API / Documentation
 
-... [In progress here](http://itkin.github.io/angularfire-resource/doc/index.html)
+[In progress here](http://itkin.github.io/angularfire-resource/doc/index.html)
  
 
 
