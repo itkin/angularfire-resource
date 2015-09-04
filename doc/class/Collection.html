@@ -35,7 +35,7 @@
       </table>
       <h2>Overview</h2>
       <div class='docstring'>
-  <p>Base class for Collection</p><p>see <a href='../class/Collection.html#constructor-dynamic'>Collection#constructor</a></p>
+  <p>Base class for Collection</p><p>Refer to <a href='../class/Collection.html#constructor-dynamic'>Collection#constructor</a></p>
 </div>
 <div class='tags'>
 </div>
@@ -45,43 +45,6 @@
       </p>
       <h2>Instance Method Summary</h2>
       <ul class='summary'>
-  <li>
-    <span class='signature'>
-      <a href='#$$init-dynamic'>
-        #
-(void)
-<b>$$init</b><span>(baseRef, cb)</span>
-      </a>
-    </span>
-    <span class='desc'>
-      Internal function used to init the Collection 
-    </span>
-  </li>
-  <li>
-    <span class='signature'>
-      <a href='#$$added-dynamic'>
-        #
-(resource)
-<b>$$added</b><span>(snap)</span>
-      </a>
-    </span>
-    <span class='desc'>
-      Angularfire hook overrided to retreiece the targetted class instances based 
-    </span>
-  </li>
-  <li>
-    <span class='signature'>
-      <a href='#$$updated-dynamic'>
-        #
-(void)
-<b>$$updated</b><span>(snap)</span>
-      </a>
-    </span>
-    <span class='desc'>
-      Angularfire hook overrided to prevent collision between instances and foreign key updates Disable foreign key update while instances updates are handled on their own
-
-    </span>
-  </li>
   <li>
     <span class='signature'>
       <a href='#$loaded-dynamic'>
@@ -130,6 +93,87 @@
       move the caret of a scrollable readonly ref 
     </span>
   </li>
+  <li>
+    <span class='signature'>
+      <a href='#$$init-dynamic'>
+        #
+(void)
+<b>$$init</b><span>(baseRef, cb)</span>
+      </a>
+    </span>
+    <span class='desc'>
+      initialise a <a href='../class/Collection.html'>Collection</a> calling $firebaseArray constructor on a firebase reference which defaults to the passed reference 
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#$$added-dynamic'>
+        #
+(resource)
+<b>$$added</b><span>(snap)</span>
+      </a>
+    </span>
+    <span class='desc'>
+      Angularfire hook overrided to retreiece the targetted class instances based 
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#$$updated-dynamic'>
+        #
+(void)
+<b>$$updated</b><span>(snap)</span>
+      </a>
+    </span>
+    <span class='desc'>
+      Angularfire hook overrided to prevent collision between instances and foreign key updates Disable foreign key update while instances updates are handled on their own
+
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#$getRecord-dynamic'>
+        #
+(Resource)
+<b>$getRecord</b><span>(key)</span>
+      </a>
+    </span>
+    <span class='desc'>
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#$keyAt-dynamic'>
+        #
+(String)
+<b>$keyAt</b><span>(instance)</span>
+      </a>
+    </span>
+    <span class='desc'>
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#$indexFor-dynamic'>
+        #
+(integer)
+<b>$indexFor</b><span>(key)</span>
+      </a>
+    </span>
+    <span class='desc'>
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#$watch-dynamic'>
+        #
+(void)
+<b>$watch</b><span>(cb, {context})</span>
+      </a>
+    </span>
+    <span class='desc'>
+    </span>
+  </li>
 </ul>
       <h2>Constructor Details</h2>
       <div class='methods'>
@@ -141,17 +185,25 @@
       <br>
     </p>
     <div class='docstring'>
-  <p>Contructor of <a href='../class/Collection.html'>Collection</a></p>
+  <div class='note'>
+    <strong>Note:</strong>
+    <a href='../class/Collection.html'>Collection</a> are instanciated internally by <a href='../class/Resource.html#$query-static'>Resource.$query</a> 
+  </div>
+  <p>Constructor of <a href='../class/Collection.html'>Collection</a></p>
   <div class='examples'>
     <h3>Examples:</h3>
     <h4>
-      instanciate a collection of users
+      default reference ({Resource.$ref})
     </h4>
     <pre><code class='coffeescript'>new Collection User</code></pre>
     <h4>
-      instanciate a collection of some users
+      custom reference, after the init callback has been called the association instance is considered alive,
     </h4>
-    <pre><code class='coffeescript'>new Collection User, (baseRef, init) -&gt; init(new Firebase.util.Scroll(baseRef, &#39;sortingProp&#39;)).$next(10)</code></pre>
+    <pre><code class='coffeescript'>new Collection User, (baseRef, init) -&gt;
+  init(new Firebase.util.Scroll(baseRef, &#39;sortingProp&#39;)).$next(10)
+#
+# calling $next allow the association to start loading the 10 first instances
+#</code></pre>
   </div>
 </div>
 <div class='tags'>
@@ -175,7 +227,7 @@
         )
       </span>
       &mdash;
-      <span class='desc'>a function to customise the reference to be used (default to Resource.$ref()) </span>
+      <span class='desc'>a function to customise the reference to be used (default to <a href='../class/Resource.html#$ref-static'>Resource.$ref</a>) </span>
     </li>
   </ul>
   <h3>Returns:</h3>
@@ -194,57 +246,6 @@
 </div>
       <h2>Instance Method Details</h2>
       <div class='methods'>
-  <div class='method_details'>
-    <p class='signature' id='$$init-dynamic'>
-      #
-(void)
-<b>$$init</b><span>(baseRef, cb)</span>
-      <br>
-    </p>
-    <div class='docstring'>
-  <p>Internal function used to init the Collection</p>
-</div>
-<div class='tags'>
-</div>
-  </div>
-  <div class='method_details'>
-    <p class='signature' id='$$added-dynamic'>
-      #
-(resource)
-<b>$$added</b><span>(snap)</span>
-      <br>
-    </p>
-    <div class='docstring'>
-  <p>Angularfire hook overrided to retreiece the targetted class instances based</p>
-</div>
-<div class='tags'>
-  <h3>Returns:</h3>
-  <ul class='return'>
-    <li>
-      <span class='type'></span>
-      (
-        <tt>resource</tt>
-      )
-      &mdash;
-      <span class='desc'>Resource instance </span>
-    </li>
-  </ul>
-</div>
-  </div>
-  <div class='method_details'>
-    <p class='signature' id='$$updated-dynamic'>
-      #
-(void)
-<b>$$updated</b><span>(snap)</span>
-      <br>
-    </p>
-    <div class='docstring'>
-  <p>Angularfire hook overrided to prevent collision between instances and foreign key updates
-Disable foreign key update while instances updates are handled on their own</p>
-</div>
-<div class='tags'>
-</div>
-  </div>
   <div class='method_details'>
     <p class='signature' id='$loaded-dynamic'>
       #
@@ -380,10 +381,179 @@ Disable foreign key update while instances updates are handled on their own</p>
   </ul>
 </div>
   </div>
+  <div class='method_details'>
+    <p class='signature' id='$$init-dynamic'>
+      #
+(void)
+<b>$$init</b><span>(baseRef, cb)</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>initialise a <a href='../class/Collection.html'>Collection</a> calling $firebaseArray constructor on a firebase reference which defaults to the passed reference</p>
+</div>
+<div class='tags'>
+  <h3>Parameters:</h3>
+  <ul class='param'>
+    <li>
+      <span class='name'>baseRef</span>
+      <span class='type'>
+        (
+          <tt>Reference</tt>
+        )
+      </span>
+    </li>
+    <li>
+      <span class='name'>callback</span>
+      <span class='type'>
+        (
+          <tt>Function</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>function taking as parameter the baseRef and an initialization callback function which have to be called within it </span>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='$$added-dynamic'>
+      #
+(resource)
+<b>$$added</b><span>(snap)</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>Angularfire hook overrided to retreiece the targetted class instances based</p>
+</div>
+<div class='tags'>
+  <h3>Returns:</h3>
+  <ul class='return'>
+    <li>
+      <span class='type'></span>
+      (
+        <tt>resource</tt>
+      )
+      &mdash;
+      <span class='desc'>Resource instance </span>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='$$updated-dynamic'>
+      #
+(void)
+<b>$$updated</b><span>(snap)</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>Angularfire hook overrided to prevent collision between instances and foreign key updates
+Disable foreign key update while instances updates are handled on their own</p>
+</div>
+<div class='tags'>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='$getRecord-dynamic'>
+      #
+(Resource)
+<b>$getRecord</b><span>(key)</span>
+      <br>
+    </p>
+    <div class='tags'>
+  <h3>Returns:</h3>
+  <ul class='return'>
+    <li>
+      <span class='type'></span>
+      (
+        <tt><a href='../class/Resource.html'>Resource</a></tt>
+      )
+      &mdash;
+      <span class='desc'>instance </span>
+    </li>
+  </ul>
+  <h3>See also:</h3>
+  <ul class='see'>
+    <li>
+      <a href='https://www.firebase.com/docs/web/libraries/angular/api.html'>https:&#47;&#47;www.firebase.com&#47;docs&#47;web&#47;libraries&#47;angular&#47;api.html</a>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='$keyAt-dynamic'>
+      #
+(String)
+<b>$keyAt</b><span>(instance)</span>
+      <br>
+    </p>
+    <div class='tags'>
+  <h3>Returns:</h3>
+  <ul class='return'>
+    <li>
+      <span class='type'></span>
+      (
+        <tt>String</tt>
+      )
+      &mdash;
+      <span class='desc'>resource key </span>
+    </li>
+  </ul>
+  <h3>See also:</h3>
+  <ul class='see'>
+    <li>
+      <a href='https://www.firebase.com/docs/web/libraries/angular/api.html'>https:&#47;&#47;www.firebase.com&#47;docs&#47;web&#47;libraries&#47;angular&#47;api.html</a>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='$indexFor-dynamic'>
+      #
+(integer)
+<b>$indexFor</b><span>(key)</span>
+      <br>
+    </p>
+    <div class='tags'>
+  <h3>Returns:</h3>
+  <ul class='return'>
+    <li>
+      <span class='type'></span>
+      (
+        <tt>integer</tt>
+      )
+      &mdash;
+      <span class='desc'>index </span>
+    </li>
+  </ul>
+  <h3>See also:</h3>
+  <ul class='see'>
+    <li>
+      <a href='https://www.firebase.com/docs/web/libraries/angular/api.html'>https:&#47;&#47;www.firebase.com&#47;docs&#47;web&#47;libraries&#47;angular&#47;api.html</a>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='$watch-dynamic'>
+      #
+(void)
+<b>$watch</b><span>(cb, {context})</span>
+      <br>
+    </p>
+    <div class='tags'>
+  <h3>See also:</h3>
+  <ul class='see'>
+    <li>
+      <a href='https://www.firebase.com/docs/web/libraries/angular/api.html'>https:&#47;&#47;www.firebase.com&#47;docs&#47;web&#47;libraries&#47;angular&#47;api.html</a>
+    </li>
+  </ul>
+</div>
+  </div>
 </div>
     </div>
     <div id='footer'>
-  September 04, 15 01:10:18 by
+  September 04, 15 12:15:07 by
   <a href='https://github.com/coffeedoc/codo' title='CoffeeScript API documentation generator'>
     Codo
   </a>
