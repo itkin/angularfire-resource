@@ -2,7 +2,7 @@
 
 Resource factory built on top of AngularFire
 
-@note This library is under active development and currently not production ready 
+> Alpha release, feedback apreciated 
 
 ## Abstract
 
