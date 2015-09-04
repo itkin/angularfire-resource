@@ -22,7 +22,6 @@ AssociationCollection instances are extended [firebaseArray](https://www.firebas
 ```
 bower install angularfire-resource
 ```
-
 or
 
 ```
