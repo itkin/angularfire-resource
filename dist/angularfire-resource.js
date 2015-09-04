@@ -21,8 +21,11 @@ String.prototype.camelize = function(firstUp) {
 
 angular.module('angularfire-resource', []);
 
+var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+  hasProp = {}.hasOwnProperty;
+
 angular.module('angularfire-resource').factory('AssociationFactory', function($injector, $firebaseUtils, AssociationCollection) {
-  var HasManyAssociation, HasOneAssociation, ensure_options, getResourceId, privateKey, publicKey, throwError;
+  var Association, HasMany, HasOne, ensure_options, getResourceId, privateKey, publicKey, throwError;
   getResourceId = function(resource) {
     if (angular.isObject(resource)) {
       return resource.$id;
@@ -60,8 +63,30 @@ angular.module('angularfire-resource').factory('AssociationFactory', function($i
     }
     return true;
   };
-  HasManyAssociation = (function() {
-    function HasManyAssociation(Resource, name, opts, cb) {
+  Association = (function() {
+    function Association() {}
+
+    Association.prototype.reverseAssociation = function() {
+      if (this.inverseOf) {
+        return this.targetClass()._assoc[this.inverseOf];
+      }
+    };
+
+    Association.prototype.targetClass = function() {
+      return $injector.get(this.className);
+    };
+
+    Association.prototype.remove = function() {};
+
+    Association.prototype.add = function() {};
+
+    return Association;
+
+  })();
+  HasMany = (function(superClass) {
+    extend(HasMany, superClass);
+
+    function HasMany(Resource, name, opts, cb) {
       var self;
       if (opts == null) {
         opts = {};
@@ -88,17 +113,7 @@ angular.module('angularfire-resource').factory('AssociationFactory', function($i
       };
     }
 
-    HasManyAssociation.prototype.reverseAssociation = function() {
-      if (this.inverseOf) {
-        return $injector.get(this.className)._assoc[this.inverseOf];
-      }
-    };
-
-    HasManyAssociation.prototype.targetClass = function() {
-      return $injector.get(this.className);
-    };
-
-    HasManyAssociation.prototype.remove = function(resource, params) {
+    HasMany.prototype.remove = function(resource, params) {
       var def;
       def = $firebaseUtils.defer();
       this.Resource.$ref().child(getResourceId(params.from)).child(name).child(getResourceId(resource)).set(null, $firebaseUtils.makeNodeResolver(def));
@@ -107,7 +122,7 @@ angular.module('angularfire-resource').factory('AssociationFactory', function($i
       });
     };
 
-    HasManyAssociation.prototype.add = function(resource, params) {
+    HasMany.prototype.add = function(resource, params) {
       var def, i, key, len, ref, value;
       def = $firebaseUtils.defer();
       if (angular.isArray(this.storedAt)) {
@@ -130,11 +145,13 @@ angular.module('angularfire-resource').factory('AssociationFactory', function($i
       });
     };
 
-    return HasManyAssociation;
+    return HasMany;
 
-  })();
-  HasOneAssociation = (function() {
-    function HasOneAssociation(Resource, name, opts) {
+  })(Association);
+  HasOne = (function(superClass) {
+    extend(HasOne, superClass);
+
+    function HasOne(Resource, name, opts) {
       var self;
       if (opts == null) {
         opts = {};
@@ -208,17 +225,7 @@ angular.module('angularfire-resource').factory('AssociationFactory', function($i
       };
     }
 
-    HasOneAssociation.prototype.reverseAssociation = function() {
-      if (this.inverseOf) {
-        return this.targetClass()._assoc[this.inverseOf];
-      }
-    };
-
-    HasOneAssociation.prototype.targetClass = function() {
-      return $injector.get(this.className);
-    };
-
-    HasOneAssociation.prototype.remove = function(resource, params) {
+    HasOne.prototype.remove = function(resource, params) {
       var def;
       def = $firebaseUtils.defer();
       this.Resource.$ref().child(getResourceId(params.from)).child(this.foreignKey).once('value', function(snap) {
@@ -231,7 +238,7 @@ angular.module('angularfire-resource').factory('AssociationFactory', function($i
       });
     };
 
-    HasOneAssociation.prototype.add = function(resource, params) {
+    HasOne.prototype.add = function(resource, params) {
       var def;
       def = $firebaseUtils.defer();
       this.Resource.$ref().child(getResourceId(params.to)).child(this.foreignKey).set(getResourceId(resource), $firebaseUtils.makeNodeResolver(def));
@@ -240,12 +247,12 @@ angular.module('angularfire-resource').factory('AssociationFactory', function($i
       });
     };
 
-    return HasOneAssociation;
+    return HasOne;
 
-  })();
+  })(Association);
   return {
-    HasOneAssociation: HasOneAssociation,
-    HasManyAssociation: HasManyAssociation
+    HasOne: HasOne,
+    HasMany: HasMany
   };
 });
 
@@ -519,7 +526,7 @@ angular.module('angularfire-resource').factory('FireResource', function($firebas
         if (opts == null) {
           opts = {};
         }
-        this._assoc[name] = new AssociationFactory.HasManyAssociation(this, name, opts, cb);
+        this._assoc[name] = new AssociationFactory.HasMany(this, name, opts, cb);
         return this;
       };
 
@@ -527,7 +534,7 @@ angular.module('angularfire-resource').factory('FireResource', function($firebas
         if (opts == null) {
           opts = {};
         }
-        this._assoc[name] = new AssociationFactory.HasOneAssociation(this, name, opts);
+        this._assoc[name] = new AssociationFactory.HasOne(this, name, opts);
         return this;
       };
 

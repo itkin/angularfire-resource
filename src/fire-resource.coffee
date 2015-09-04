@@ -13,8 +13,8 @@ angular.module('angularfire-resource')
     #
     # @note Resource classes are created by the FireResource factory
     #
-    # @param resourceRef {ref} firebase reference
-    # @param resourceOptions {Object} options (optional)
+    # @param ref {ref} firebase reference
+    # @param opts {Object} options (optional)
     # @param callack {Function} optional function called in the context of the defined Resource (to add methods, relations, or override stuff)
     # @return {Resource} the Resource class ready to be used by the angular factory
     #
@@ -24,7 +24,7 @@ angular.module('angularfire-resource')
     #   app.module('myApp').factory 'User', (FireResource, $firebase) ->
     #     FireResource $firebase.child('users')
     #
-    # @example Chaining class method calls
+    # @example Class methods not prefixed with `$` are chainable
     #   factory 'User', (FireResource, $firebase) ->
     #     FireResource $firebase.child('users')
     #       .hasMany 'conversations'
@@ -32,7 +32,7 @@ angular.module('angularfire-resource')
     #         className: 'Conversation'
     #         inverseOf: false
     #
-    # @example Accessing the resource from within
+    # @example Pass a callback as the last argument to access the resource from within
     #   factory 'User', (FireResource, $firebase) ->
     #     FireResource $firebase.child('users'), ->
     #       @hasMany 'conversations'
@@ -43,7 +43,7 @@ angular.module('angularfire-resource')
     #
     # @See the README file
     #
-    # @property #$id
+    # @method #$id
     #   @see https://www.firebase.com/docs/web/libraries/angular/api.html
     # @method #$ref()
     #   @see https://www.firebase.com/docs/web/libraries/angular/api.html
@@ -63,7 +63,7 @@ angular.module('angularfire-resource')
         $firebaseObject.call this, ref
         @$$isNew  = false
         @$$loaded = false
-        @$include(resourceOptions.include)
+        @$include(resourceOptions.includes)
 
       # @property Map storing the Resource associations instances
       @_assoc: {}
@@ -77,7 +77,7 @@ angular.module('angularfire-resource')
         resourceRef
 
 
-      # Query firebase on the {Resource.$ref}
+      # Collection Resource getter, query firebase on the {Resource.$ref}
       # @param cb {Function} function to customize the Collection ref. Take as parameters a reference and an init callback function that has to be called
       # @return {Collection} instance of {Collection}
       #
@@ -150,7 +150,7 @@ angular.module('angularfire-resource')
       #   user.$$conversations === undefined
       #
       @hasMany: (name, opts={}, cb)->
-        @_assoc[name] = new AssociationFactory.HasManyAssociation(this, name, opts, cb)
+        @_assoc[name] = new AssociationFactory.HasMany(this, name, opts, cb)
         this
 
 
@@ -177,7 +177,7 @@ angular.module('angularfire-resource')
       #   message.$createUser( userData ) #create an associated user instance
       #
       @hasOne: (name, opts = {}) ->
-        @_assoc[name] = new AssociationFactory.HasOneAssociation(this, name, opts)
+        @_assoc[name] = new AssociationFactory.HasOne(this, name, opts)
         this
 
 
