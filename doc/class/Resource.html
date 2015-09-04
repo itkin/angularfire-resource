@@ -33,6 +33,93 @@
           <td>src&#47;fire-resource.coffee</td>
         </tr>
       </table>
+      <h2>Overview</h2>
+      <div class='docstring'>
+  <div class='note'>
+    <strong>Note:</strong>
+    Resource classes are created by the FireResource factory 
+  </div>
+  <p>Base resource class</p><p>Below the different way to use the FireResource factory</p><p>@property #$id @see <a href="https://www.firebase.com/docs/web/libraries/angular/api.html">https://www.firebase.com/docs/web/libraries/angular/api.html</a></p>
+  <div class='examples'>
+    <h3>Examples:</h3>
+    <h4>
+      Basic model
+    </h4>
+    <pre><code class='coffeescript'>app.module(&#39;myApp&#39;).factory &#39;User&#39;, (FireResource, $firebase) -&gt;
+  FireResource $firebase.child(&#39;users&#39;)</code></pre>
+    <h4>
+      Chaining class method calls
+    </h4>
+    <pre><code class='coffeescript'>factory &#39;User&#39;, (FireResource, $firebase) -&gt;
+  FireResource $firebase.child(&#39;users&#39;)
+    .hasMany &#39;conversations&#39;
+    .hasOne &#39;displayedConversation&#39;,
+      className: &#39;Conversation&#39;
+      inverseOf: false</code></pre>
+    <h4>
+      Accessing the resource from within
+    </h4>
+    <pre><code class='coffeescript'>factory &#39;User&#39;, (FireResource, $firebase) -&gt;
+  FireResource $firebase.child(&#39;users&#39;), -&gt;
+    @hasMany &#39;conversations&#39;
+    @hasOne &#39;displayedConversation&#39;,
+      className: &#39;Conversation&#39;
+      inverseOf: false
+    @::myCostomInstanceMethod = -&gt; &quot;i&#39;m custom&quot;</code></pre>
+  </div>
+</div>
+<div class='tags'>
+  <h3>Parameters:</h3>
+  <ul class='param'>
+    <li>
+      <span class='name'>resourceRef</span>
+      <span class='type'>
+        (
+          <tt>ref</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>firebase reference </span>
+    </li>
+    <li>
+      <span class='name'>resourceOptions</span>
+      <span class='type'>
+        (
+          <tt>Object</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>options (optional) </span>
+    </li>
+    <li>
+      <span class='name'>callack</span>
+      <span class='type'>
+        (
+          <tt>Function</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>optional function called in the context of the defined Resource (to add methods, relations, or override stuff) </span>
+    </li>
+  </ul>
+  <h3>Returns:</h3>
+  <ul class='return'>
+    <li>
+      <span class='type'></span>
+      (
+        <tt><a href='../class/Resource.html'>Resource</a></tt>
+      )
+      &mdash;
+      <span class='desc'>the Resource class ready to be used by the angular factory </span>
+    </li>
+  </ul>
+  <h3>See also:</h3>
+  <ul class='see'>
+    <li>
+      <a href='the'>README file</a>
+    </li>
+  </ul>
+</div>
       <h2>Variables Summary</h2>
       <dl class='constants'>
   <dt id='_assoc-variable'>
@@ -153,7 +240,7 @@
     <span class='signature'>
       <a href='#$isNew-dynamic'>
         #
-(void)
+(Boolean)
 <b>$isNew</b><span>()</span>
       </a>
     </span>
@@ -177,7 +264,7 @@
     <span class='signature'>
       <a href='#$save-dynamic'>
         #
-(void)
+(Promise)
 <b>$save</b><span>()</span>
       </a>
     </span>
@@ -218,7 +305,7 @@
       </a>
     </span>
     <span class='desc'>
-      update data and call {Resource#$ 
+      Extend instance with data and call {Resource#$ 
     </span>
   </li>
   <li>
@@ -267,6 +354,39 @@
     </span>
     <span class='desc'>
       Run a callback chain 
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#$ref-dynamic'>
+        #
+(void)
+<b>$ref</b><span>()</span>
+      </a>
+    </span>
+    <span class='desc'>
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#$bindTo-dynamic'>
+        #
+(void)
+<b>$bindTo</b><span>(scope, varName)</span>
+      </a>
+    </span>
+    <span class='desc'>
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#$watch-dynamic'>
+        #
+(void)
+<b>$watch</b><span>(callback, context)</span>
+      </a>
+    </span>
+    <span class='desc'>
     </span>
   </li>
 </ul>
@@ -699,7 +819,7 @@ message.$createUser( userData ) #create an associated user instance</code></pre>
   <div class='method_details'>
     <p class='signature' id='$isNew-dynamic'>
       #
-(void)
+(Boolean)
 <b>$isNew</b><span>()</span>
       <br>
     </p>
@@ -707,6 +827,13 @@ message.$createUser( userData ) #create an associated user instance</code></pre>
   <p>check wether the instance has been saved to firebase</p>
 </div>
 <div class='tags'>
+  <h3>Returns:</h3>
+  <ul class='return'>
+    <li>
+      <span class='type'></span>
+      <tt>Boolean</tt>
+    </li>
+  </ul>
 </div>
   </div>
   <div class='method_details'>
@@ -736,7 +863,7 @@ message.$createUser( userData ) #create an associated user instance</code></pre>
   <div class='method_details'>
     <p class='signature' id='$save-dynamic'>
       #
-(void)
+(Promise)
 <b>$save</b><span>()</span>
       <br>
     </p>
@@ -744,6 +871,17 @@ message.$createUser( userData ) #create an associated user instance</code></pre>
   <p>wrap the original angularfire $save function into the callback chain and deal with the timestamps</p>
 </div>
 <div class='tags'>
+  <h3>Returns:</h3>
+  <ul class='return'>
+    <li>
+      <span class='type'></span>
+      (
+        <tt>Promise</tt>
+      )
+      &mdash;
+      <span class='desc'>a promise which resolve with the resource instance </span>
+    </li>
+  </ul>
 </div>
   </div>
   <div class='method_details'>
@@ -799,7 +937,7 @@ message.$createUser( userData ) #create an associated user instance</code></pre>
       <br>
     </p>
     <div class='docstring'>
-  <p>update data and call <a href='../class/Resource.html#$save-dynamic'>Resource#$save</a></p>
+  <p>Extend instance with data and call <a href='../class/Resource.html#$save-dynamic'>Resource#$save</a></p>
 </div>
 <div class='tags'>
   <h3>Parameters:</h3>
@@ -945,10 +1083,58 @@ message.$createUser( userData ) #create an associated user instance</code></pre>
   </ul>
 </div>
   </div>
+  <div class='method_details'>
+    <p class='signature' id='$ref-dynamic'>
+      #
+(void)
+<b>$ref</b><span>()</span>
+      <br>
+    </p>
+    <div class='tags'>
+  <h3>See also:</h3>
+  <ul class='see'>
+    <li>
+      <a href='https://www.firebase.com/docs/web/libraries/angular/api.html'>https:&#47;&#47;www.firebase.com&#47;docs&#47;web&#47;libraries&#47;angular&#47;api.html</a>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='$bindTo-dynamic'>
+      #
+(void)
+<b>$bindTo</b><span>(scope, varName)</span>
+      <br>
+    </p>
+    <div class='tags'>
+  <h3>See also:</h3>
+  <ul class='see'>
+    <li>
+      <a href='https://www.firebase.com/docs/web/libraries/angular/api.html'>https:&#47;&#47;www.firebase.com&#47;docs&#47;web&#47;libraries&#47;angular&#47;api.html</a>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='$watch-dynamic'>
+      #
+(void)
+<b>$watch</b><span>(callback, context)</span>
+      <br>
+    </p>
+    <div class='tags'>
+  <h3>See also:</h3>
+  <ul class='see'>
+    <li>
+      <a href='https://www.firebase.com/docs/web/libraries/angular/api.html'>https:&#47;&#47;www.firebase.com&#47;docs&#47;web&#47;libraries&#47;angular&#47;api.html</a>
+    </li>
+  </ul>
+</div>
+  </div>
 </div>
     </div>
     <div id='footer'>
-  September 04, 15 12:15:07 by
+  September 04, 15 12:51:09 by
   <a href='https://github.com/coffeedoc/codo' title='CoffeeScript API documentation generator'>
     Codo
   </a>
