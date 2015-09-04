@@ -1,7 +1,7 @@
 
 angular.module('angularfire-resource')
 
-.factory 'Collection', ($firebaseArray, $firebaseUtils) ->
+.factory 'Collection', ['$firebaseArray', '$firebaseUtils', ($firebaseArray, $firebaseUtils) ->
 
   # Base class for Collection
   #
@@ -140,8 +140,8 @@ angular.module('angularfire-resource')
 
 
   $firebaseArray.$extend Collection
-
-.factory 'AssociationCollection', ($firebaseArray, $injector, Collection, $firebaseUtils) ->
+]
+.factory 'AssociationCollection', ['$firebaseArray', '$injector', 'Collection', '$firebaseUtils', ($firebaseArray, $injector, Collection, $firebaseUtils) ->
 
   # Collection returned by a association
   #
@@ -196,7 +196,4 @@ angular.module('angularfire-resource')
       .then ->
         resource
 
-#    $$notify: ->
-#      console.log @$$parentRecord.constructor.$name.camelize(true), @$$parentRecord.$id, @$$association.name, arguments[0], arguments[1]
-#      $firebaseArray::$$notify.apply this, arguments
-
+]

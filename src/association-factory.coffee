@@ -1,6 +1,6 @@
 angular.module('angularfire-resource')
 
-.factory 'AssociationFactory', ($injector, $firebaseUtils, AssociationCollection) ->
+.factory 'AssociationFactory', ['$injector', '$firebaseUtils','AssociationCollection', ($injector, $firebaseUtils, AssociationCollection) ->
 
   getResourceId = (resource) ->
     if angular.isObject(resource)
@@ -173,3 +173,4 @@ angular.module('angularfire-resource')
   HasOne:   HasOne
   HasMany:  HasMany
 
+]

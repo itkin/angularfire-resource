@@ -2,31 +2,30 @@ var gulp = require('gulp'),
     gutil = require('gulp-util'),
     concat = require('gulp-concat'),
     coffee = require('gulp-coffee'),
-    gulpFilter = require('gulp-filter'),
-    sourcemaps = require('gulp-sourcemaps'),
     connect = require('gulp-connect'),
     nodemon = require('gulp-nodemon'),
-    order = require("gulp-order");
+    order = require("gulp-order"),
+    uglify = require('gulp-uglify'),
+    rename= require('gulp-rename');
 
 gulp.task('firebase-server', function () {
   nodemon({
     script: 'demo/firebase-server.js'
-    //, ext: 'js html'
     , env: { 'NODE_ENV': 'development' }
   })
 });
 
 gulp.task('coffee', function(done) {
-  //var coffeeFilter = gulpFilter('**/*.coffee',{restore: true});
   return gulp.src('src/**/*.coffee')
-    //.pipe(coffeeFilter)
     .pipe(coffee({bare: true}).on('error', gutil.log))
-    //  .on('error', gutil.log))
-    //.pipe(coffeeFilter.restore)
     .pipe(concat('angularfire-resource.js'))
     .pipe(gulp.dest('dist'))
     .pipe(gulp.dest('demo'))
-    .pipe(connect.reload())
+    .pipe(uglify())
+    .pipe(rename('angularfire-resource.min.js'))
+    .pipe(gulp.dest('dist/'))
+    .pipe(gulp.dest('demo/'))
+    .pipe(connect.reload());
 
     //.pipe(gulp.dest('tmp'));
     //.pipe()

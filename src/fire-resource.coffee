@@ -1,6 +1,6 @@
 angular.module('angularfire-resource')
 
-.factory 'FireResource', ($firebaseObject, $firebaseUtils, Collection, AssociationFactory) ->
+.factory 'FireResource', ['$firebaseObject', '$firebaseUtils', 'Collection', 'AssociationFactory', ($firebaseObject, $firebaseUtils, Collection, AssociationFactory) ->
 
   (resourceRef, resourceOptions={}, callback) ->
 
@@ -325,3 +325,5 @@ angular.module('angularfire-resource')
       callback.call(this) if callback?
 
       Resource
+
+]
