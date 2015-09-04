@@ -31,7 +31,7 @@ angular.module('angularfire-resource')
       #
       # @example Class methods not prefixed with `$` are chainable
       #   factory 'User', (FireResource, $firebase) ->
-      #     FireResource $firebase.child('users')
+      #     FireResource($firebase.child('users'))
       #       .hasMany 'conversations'
       #       .hasOne 'displayedConversation',
       #         className: 'Conversation'
