@@ -1,12 +1,12 @@
 {
   "name": "angularfire-resource",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "",
   "main": "./dist/angularfire-resource.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "",
+  "author": "nicolas.papon@gmail.com",
   "license": "ISC",
   "devDependencies": {
     "firebase-server": "^0.3.1",

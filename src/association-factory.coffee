@@ -29,7 +29,22 @@ angular.module('angularfire-resource')
       throwError(Resource, type, name, 'foreignKey')
     true
 
-  class HasManyAssociation
+  # @abstract Base association class
+  #
+  class Association
+    reverseAssociation: ->
+      @targetClass()._assoc[@inverseOf] if @inverseOf
+
+    targetClass: ->
+      $injector.get @className
+
+    remove: ->
+
+    add: ->
+
+  # @note Instanciate by {Resource.hasMany}, for internal use only
+  #
+  class HasMany extends Association
 
     constructor: (Resource, name, opts={}, cb) ->
       @Resource = Resource
@@ -49,11 +64,7 @@ angular.module('angularfire-resource')
         else
           @[privateKey name]
 
-    reverseAssociation: ->
-      $injector.get(@className)._assoc[@inverseOf] if @inverseOf
 
-    targetClass: ->
-      $injector.get @className
 
     remove: (resource, params) ->
       def = $firebaseUtils.defer()
@@ -80,7 +91,7 @@ angular.module('angularfire-resource')
 
   # @note Instanciate by {Resource.hasOne}, for internal use only
   #
-  class HasOneAssociation
+  class HasOne extends Association
 
     constructor: (Resource, name, opts={}) ->
       @Resource = Resource
@@ -146,12 +157,6 @@ angular.module('angularfire-resource')
         .catch ->
           newResource
 
-    reverseAssociation: ->
-      @targetClass()._assoc[@inverseOf] if @inverseOf
-
-    targetClass: ->
-      $injector.get(@className)
-
     remove: (resource, params) ->
       def = $firebaseUtils.defer()
       @Resource.$ref().child(getResourceId(params.from)).child(@foreignKey).once 'value', (snap)->
@@ -165,6 +170,6 @@ angular.module('angularfire-resource')
       def.promise.then -> resource
 
 
-  HasOneAssociation:   HasOneAssociation
-  HasManyAssociation:  HasManyAssociation
+  HasOne:   HasOne
+  HasMany:  HasMany
 
