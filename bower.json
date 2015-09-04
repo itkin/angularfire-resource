@@ -4,7 +4,8 @@
   "authors": [
     "itkin <nicolas.papon@webflows.fr>"
   ],
-  "main": "angularfire-resource.js",
+  "main": "dist/angularfire-resource.js",
+  "directory": "dist/",
   "moduleType": [
     "globals"
   ],
@@ -12,7 +13,8 @@
     "firebase",
     "angular",
     "angularfire",
-    "resource"
+    "resource",
+    "model"
   ],
   "license": "MIT",
   "ignore": [
@@ -22,12 +24,13 @@
     "test",
     "tests"
   ],
+  "dependencies": {
+    "angularfire": "1.1.x"
+  },
   "devDependencies": {
-    "angular": "~1.4.4",
-    "firebase": "~2.2.9",
-    "angularfire": "~1.1.2",
-    "firebase-util": "~0.2.5",
-    "ngInfiniteScroll": "git@github.com:itkin/ngInfiniteScroll.git#master",
-    "zInfiniteScroll": "https://github.com/LightZam/zInfiniteScroll.git#~1.1.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:itkin/angularfire-resource.git"
   }
 }

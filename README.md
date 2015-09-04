@@ -17,6 +17,18 @@ AssociationCollection instances are extended [firebaseArray](https://www.firebas
 + they can preload their own instances associations
 + they deal nicely with the [firebase-util librairy](https://github.com/firebase/firebase-util) for pagination & infinite scrolling work
 
+## Install
+
+```
+bower install angularfire-resource
+```
+
+or
+
+```
+npm install angularfire-resource
+```
+
 ## Usage
 
 Add the 'angularfire-resource' module as a dependency to your application module, and then define your model classes and their relations 
