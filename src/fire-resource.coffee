@@ -51,7 +51,7 @@ angular.module('angularfire-resource')
     #   @see https://www.firebase.com/docs/web/libraries/angular/api.html
     # @method #$watch(callback, context)
     #   @see https://www.firebase.com/docs/web/libraries/angular/api.html
-
+    #
     class Resource
 
       map = {}
@@ -199,6 +199,7 @@ angular.module('angularfire-resource')
       #INSTANCES METHODS
 
       # check wether the instance has been saved to firebase
+      # @return {Boolean}
       $isNew: ->
         @$$isNew
 
@@ -215,6 +216,7 @@ angular.module('angularfire-resource')
             this
 
       # wrap the original angularfire $save function into the callback chain and deal with the timestamps
+      # @return {Promise} a promise which resolve with the resource instance
       $save: ->
         $firebaseUtils.resolve()
         .then =>
@@ -254,7 +256,7 @@ angular.module('angularfire-resource')
         $firebaseObject.prototype.$destroy.apply(this, arguments)
         delete map[@$id]
 
-      # update data and call {Resource#$save}
+      # Extend instance with data and call {Resource#$save}
       # @param {Object} data
       # @return {Promise} promise which resolve into the instance resource once saved
       $update: (data) ->
