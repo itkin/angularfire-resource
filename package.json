@@ -4,7 +4,7 @@
   "description": "Resource factory built on top of AngularFire",
   "main": "./dist/angularfire-resource.js",
   "scripts": {
-    "doc": "git checkout gh-pages && git merge master -X theirs && gulp coffee && codo src/ && git push gh-pages && git checkout master",
+    "doc": "git checkout gh-pages && git merge master -X theirs && codo src/ && git add --all &&  git commit -a -m 'updated doc' && git push gh-pages && git checkout master",
     "version": "gulp coffee",
     "postversion": "git push origin master --tags"
   },
