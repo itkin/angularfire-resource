@@ -4,7 +4,9 @@
   "description": "Resource factory built on top of AngularFire",
   "main": "./dist/angularfire-resource.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "doc": "git checkout gh-pages && git merge master -X theirs && codo src/ && git add --all && git commit -a -m 'doc' && git push origin gh-pages && git checkout master",
+    "version": "gulp coffee",
+    "postversion": "git push && git push --tags"
   },
   "author": "nicolas.papon@gmail.com",
   "license": "ISC",
@@ -28,13 +30,9 @@
     "gulp-connect": "^2.2.0",
     "cookie-signature": "^1.0.6"
   },
-  "scripts":{
-    "doc": "git checkout gh-pages && git merge master -X theirs && codo src/ && git add --all && git commit -a -m 'doc' && git push origin gh-pages && git checkout master",
-    "version": "gulp coffee",
-    "postversion": "git push && git push --tags"
-  },
   "directories": {
-    "doc": "doc"
+    "doc": "doc",
+    "lib": "dist"
   },
   "repository": {
     "type": "git",
@@ -50,5 +48,8 @@
   "bugs": {
     "url": "https://github.com/itkin/angularfire-resource/issues"
   },
-  "homepage": "https://github.com/itkin/angularfire-resource#readme"
+  "homepage": "https://github.com/itkin/angularfire-resource#readme",
+  "dependencies": {
+    "angularfire": "1.1.x"
+  }
 }
