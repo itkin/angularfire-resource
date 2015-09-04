@@ -78,7 +78,8 @@ angular.module('angularfire-resource')
       def.promise.then -> resource
 
 
-
+  # @note Instanciate by {Resource.hasOne}, for internal use only
+  #
   class HasOneAssociation
 
     constructor: (Resource, name, opts={}) ->
