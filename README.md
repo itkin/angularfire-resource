@@ -20,12 +20,12 @@ AssociationCollection instances are extended [firebaseArray](https://www.firebas
 ## Install
 
 ```
-bower install angularfire-resource
+bower install angularfire-resource --save
 ```
 or
 
 ```
-npm install angularfire-resource
+npm install angularfire-resource --save
 ```
 
 ## Usage
@@ -113,22 +113,31 @@ And now you can write some clean controllers :-)
 angular.module('myApp')
 
   // Let's asume $currentUser is an instance of User retrieved from a resolve
-  .controller('ExamplesController', function($scope, Message, $currentUser){
+  .controller('ExamplesController', function($scope, User, Message, $currentUser){
     
-    // $query on all ( rootUrl/users ) 
+    // get a resource from its key
+    $scope.user = User.$find($currentUser.$id)
+    
+    // each instance is retrieved only once from firebase, then synced thanks to the angularfire ObjectSyncManager
+    $scope.user === $currentUser
+     
+    // get all instances of (will query on rootUrl/users ) 
     $scope.allUsers = User.$query()
     
-    // $query on some, customizing your ref
+    // get some instances, customizing the ref
     $scope.someUsers = User.$query(function(baseRef, init){
       init(new Firebase.util.Scroll(baseRef, 'presence')).$next(10)
     });
     
-    // use $next and $prev to access the scroll instance of your custom ref (if firebase util is used)
+    // use $next and $prev functions to access the scroll instance of your custom ref (if firebase util is used)
     $scope.loadMoreUsers = function(){
       $scope.someUsers.$next(10)
     };
-
-    // preload associations
+    
+    // get associated instances collection
+    $scope.conversations = $currentUser.$conversations()
+    
+    // preload 2nd level associations
     $scope.conversations = $currentUser.$conversations().$include('messages')
     
     // Instanciate new model 
@@ -143,7 +152,7 @@ angular.module('myApp')
     
     // do sequential operations
     $scope.createConversationWith = function(user) {
-      // create an instance into a collection
+      // create an instance and add it into a collection
       return $currentUser.$conversations().$create()
         .then(function (conversation) {
           // then add it to an other collection
