@@ -586,9 +586,12 @@ angular.module('angularfire-resource').factory('FireResource', [
         };
 
         Resource.prototype.$save = function() {
+          var args, isNew;
+          args = arguments;
+          isNew = this.$isNew();
           return $firebaseUtils.resolve().then((function(_this) {
             return function() {
-              if (_this.$isNew()) {
+              if (isNew) {
                 return _this.$$runCallbacks('beforeCreate');
               }
             };
@@ -598,18 +601,18 @@ angular.module('angularfire-resource').factory('FireResource', [
             };
           })(this)).then((function(_this) {
             return function() {
-              if (_this.$isNew()) {
+              if (isNew) {
                 _this.createdAt = Firebase.ServerValue.TIMESTAMP;
               }
               return _this.updatedAt = Firebase.ServerValue.TIMESTAMP;
             };
           })(this)).then((function(_this) {
             return function() {
-              return $firebaseObject.prototype.$save.apply(_this, arguments);
+              return $firebaseObject.prototype.$save.apply(_this, args);
             };
           })(this)).then((function(_this) {
             return function() {
-              if (_this.$isNew()) {
+              if (isNew) {
                 return _this.$$runCallbacks('afterCreate');
               }
             };
