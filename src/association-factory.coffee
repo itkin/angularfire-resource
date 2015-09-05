@@ -76,22 +76,30 @@ angular.module('angularfire-resource')
           .set(null, $firebaseUtils.makeNodeResolver(def))
         def.promise.then -> resource
 
+      # Add a resource to a parent's collection
+      # @param resource {Resource} resource instance to be added
+      # @param params {Object} point the parent
+      # @option params {Resource} to parent instance holding the collection
+      # @example
+      # @$$association.add(resource, to: @$$parentRecord)
       add: (resource, params) ->
         def = $firebaseUtils.defer()
 
-        if angular.isArray(@storedAt)
-          value = {}
-          for key in @storedAt
-            value[key] = if angular.isFunction(resource[key]) then resource[key]() else resource[key]
-        else if angular.isFunction(@storedAt)
-          value = @storedAt.call(resource, params.to)
-        else if angular.isString(@storedAt)
-          value = if angular.isFunction(resource[@storedAt]) then resource[@storedAt]() else resource[@storedAt]
-        else
-          value = true
+        getValue = (storedAt, parent, child) ->
+          if angular.isArray(storedAt)
+            value = {}
+            value[key] = getValue(key, parent, child) for key in storedAt
+            value
+          else if angular.isFunction(storedAt)
+            storedAt.call(parent, child)
+          else if angular.isString(storedAt)
+            if angular.isFunction(child[storedAt]) then child[storedAt](parent) else child[storedAt]
+          else
+            true
 
         @Resource.$ref().child(getResourceId(params.to)).child(@name).child(getResourceId(resource))
-          .set(value, $firebaseUtils.makeNodeResolver(def))
+          .set  getValue(@storedAt, params.to, resource), $firebaseUtils.makeNodeResolver(def)
+
         def.promise.then -> resource
 
 
