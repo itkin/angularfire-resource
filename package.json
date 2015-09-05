@@ -1,6 +1,6 @@
 {
   "name": "angularfire-resource",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Resource factory built on top of AngularFire",
   "main": "./dist/angularfire-resource.js",
   "scripts": {
