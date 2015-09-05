@@ -223,18 +223,20 @@ angular.module('angularfire-resource')
         # wrap the original angularfire $save function into the callback chain and deal with the timestamps
         # @return {Promise} a promise which resolve with the resource instance
         $save: ->
+          args = arguments
+          isNew = @$isNew()
           $firebaseUtils.resolve()
           .then =>
-            @$$runCallbacks('beforeCreate') if @$isNew()
+            @$$runCallbacks('beforeCreate') if isNew
           .then =>
             @$$runCallbacks('beforeSave')
           .then =>
-            @createdAt = Firebase.ServerValue.TIMESTAMP if @$isNew()
+            @createdAt = Firebase.ServerValue.TIMESTAMP if isNew
             @updatedAt = Firebase.ServerValue.TIMESTAMP
           .then =>
-            $firebaseObject::$save.apply(this, arguments)
+            $firebaseObject::$save.apply(this, args)
           .then =>
-            @$$runCallbacks('afterCreate') if @$isNew()
+            @$$runCallbacks('afterCreate') if isNew
           .then =>
             @$$runCallbacks('afterSave')
           .then =>

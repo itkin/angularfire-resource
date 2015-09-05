@@ -124,23 +124,30 @@ angular.module('angularfire-resource').factory('AssociationFactory', [
       };
 
       HasMany.prototype.add = function(resource, params) {
-        var def, i, key, len, ref, value;
+        var def, getValue;
         def = $firebaseUtils.defer();
-        if (angular.isArray(this.storedAt)) {
-          value = {};
-          ref = this.storedAt;
-          for (i = 0, len = ref.length; i < len; i++) {
-            key = ref[i];
-            value[key] = angular.isFunction(resource[key]) ? resource[key]() : resource[key];
+        getValue = function(storedAt, parent, child) {
+          var i, key, len, value;
+          if (angular.isArray(storedAt)) {
+            value = {};
+            for (i = 0, len = storedAt.length; i < len; i++) {
+              key = storedAt[i];
+              value[key] = getValue(key, parent, child);
+            }
+            return value;
+          } else if (angular.isFunction(storedAt)) {
+            return storedAt.call(parent, child);
+          } else if (angular.isString(storedAt)) {
+            if (angular.isFunction(child[storedAt])) {
+              return child[storedAt](parent);
+            } else {
+              return child[storedAt];
+            }
+          } else {
+            return true;
           }
-        } else if (angular.isFunction(this.storedAt)) {
-          value = this.storedAt.call(resource, params.to);
-        } else if (angular.isString(this.storedAt)) {
-          value = angular.isFunction(resource[this.storedAt]) ? resource[this.storedAt]() : resource[this.storedAt];
-        } else {
-          value = true;
-        }
-        this.Resource.$ref().child(getResourceId(params.to)).child(this.name).child(getResourceId(resource)).set(value, $firebaseUtils.makeNodeResolver(def));
+        };
+        this.Resource.$ref().child(getResourceId(params.to)).child(this.name).child(getResourceId(resource)).set(getValue(this.storedAt, params.to, resource), $firebaseUtils.makeNodeResolver(def));
         return def.promise.then(function() {
           return resource;
         });
@@ -586,9 +593,12 @@ angular.module('angularfire-resource').factory('FireResource', [
         };
 
         Resource.prototype.$save = function() {
+          var args, isNew;
+          args = arguments;
+          isNew = this.$isNew();
           return $firebaseUtils.resolve().then((function(_this) {
             return function() {
-              if (_this.$isNew()) {
+              if (isNew) {
                 return _this.$$runCallbacks('beforeCreate');
               }
             };
@@ -598,18 +608,18 @@ angular.module('angularfire-resource').factory('FireResource', [
             };
           })(this)).then((function(_this) {
             return function() {
-              if (_this.$isNew()) {
+              if (isNew) {
                 _this.createdAt = Firebase.ServerValue.TIMESTAMP;
               }
               return _this.updatedAt = Firebase.ServerValue.TIMESTAMP;
             };
           })(this)).then((function(_this) {
             return function() {
-              return $firebaseObject.prototype.$save.apply(_this, arguments);
+              return $firebaseObject.prototype.$save.apply(_this, args);
             };
           })(this)).then((function(_this) {
             return function() {
-              if (_this.$isNew()) {
+              if (isNew) {
                 return _this.$$runCallbacks('afterCreate');
               }
             };
