@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html>
+  <head>
+  <meta charset='UTF-8'>
+  <title>CoffeeScript API Documentation</title>
+  <script src='../javascript/application.js'></script>
+  <script src='../javascript/search.js'></script>
+  <link rel='stylesheet' href='../stylesheets/application.css' type='text/css'>
+</head>
+  <body>
+    <div id='base' data-path='../'></div>
+<div id='header'>
+  <div id='menu'>
+    <a href='../extra/README.md.html' title='Angularfire-resource'>
+      Angularfire-resource
+    </a>
+    &raquo;
+    <a href='../alphabetical_index.html' title='Index'>
+      Index
+    </a>
+    &raquo;
+    <span class='title'>Collection</span>
+  </div>
+</div>
+    <div id='content'>
+      <h1>
+        Class:
+        Collection
+      </h1>
+      <table class='box'>
+        <tr>
+          <td>Defined in:</td>
+          <td>src&#47;fire-collection.coffee</td>
+        </tr>
+      </table>
+      <h2>Overview</h2>
+      <div class='docstring'>
+  <p>Base class for Collection</p><p>Refer to <a href='../class/Collection.html#constructor-dynamic'>Collection#constructor</a></p>
+</div>
+<div class='tags'>
+</div>
+      <h2>Direct Known Subclasses</h2>
+      <p class='children'>
+        <a href='../class/AssociationCollection.html'>AssociationCollection</a>
+      </p>
+      <h2>Instance Method Summary</h2>
+      <ul class='summary'>
+  <li>
+    <span class='signature'>
+      <a href='#$loaded-dynamic'>
+        #
+(promise)
+<b>$loaded</b><span>()</span>
+      </a>
+    </span>
+    <span class='desc'>
+      Override angularfire $loaded to load the includes of the association items 
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#$include-dynamic'>
+        #
+(this)
+<b>$include</b><span>(includes)</span>
+      </a>
+    </span>
+    <span class='desc'>
+      Set the includes asocciated with the association item 
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#$next-dynamic'>
+        #
+(promise)
+<b>$next</b><span>(pageSize)</span>
+      </a>
+    </span>
+    <span class='desc'>
+      move the caret of a scrollable readonly ref 
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#$prev-dynamic'>
+        #
+(promise)
+<b>$prev</b><span>(pageSize)</span>
+      </a>
+    </span>
+    <span class='desc'>
+      move the caret of a scrollable readonly ref 
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#$$init-dynamic'>
+        #
+(void)
+<b>$$init</b><span>(baseRef, cb)</span>
+      </a>
+    </span>
+    <span class='desc'>
+      initialise a <a href='../class/Collection.html'>Collection</a> calling $firebaseArray constructor on a firebase reference which defaults to the passed reference 
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#$$added-dynamic'>
+        #
+(resource)
+<b>$$added</b><span>(snap)</span>
+      </a>
+    </span>
+    <span class='desc'>
+      Angularfire hook overrided to retreiece the targetted class instances based 
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#$$updated-dynamic'>
+        #
+(void)
+<b>$$updated</b><span>(snap)</span>
+      </a>
+    </span>
+    <span class='desc'>
+      Angularfire hook overrided to prevent collision between instances and foreign key updates Disable foreign key update while instances updates are handled on their own
+
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#$getRecord-dynamic'>
+        #
+(Resource)
+<b>$getRecord</b><span>(key)</span>
+      </a>
+    </span>
+    <span class='desc'>
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#$keyAt-dynamic'>
+        #
+(String)
+<b>$keyAt</b><span>(instance)</span>
+      </a>
+    </span>
+    <span class='desc'>
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#$indexFor-dynamic'>
+        #
+(integer)
+<b>$indexFor</b><span>(key)</span>
+      </a>
+    </span>
+    <span class='desc'>
+    </span>
+  </li>
+  <li>
+    <span class='signature'>
+      <a href='#$watch-dynamic'>
+        #
+(void)
+<b>$watch</b><span>(cb, {context})</span>
+      </a>
+    </span>
+    <span class='desc'>
+    </span>
+  </li>
+</ul>
+      <h2>Constructor Details</h2>
+      <div class='methods'>
+  <div class='method_details'>
+    <p class='signature' id='constructor-dynamic'>
+      #
+(Array)
+<b>constructor</b><span>(targetClass, cb)</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <div class='note'>
+    <strong>Note:</strong>
+    <a href='../class/Collection.html'>Collection</a> are instanciated internally by <a href='../class/Resource.html#$query-static'>Resource.$query</a> 
+  </div>
+  <p>Constructor of <a href='../class/Collection.html'>Collection</a></p>
+  <div class='examples'>
+    <h3>Examples:</h3>
+    <h4>
+      default reference ({Resource.$ref})
+    </h4>
+    <pre><code class='coffeescript'>new Collection User</code></pre>
+    <h4>
+      custom reference, after the init callback has been called the association instance is considered alive,
+    </h4>
+    <pre><code class='coffeescript'>new Collection User, (baseRef, init) -&gt;
+  init(new Firebase.util.Scroll(baseRef, &#39;sortingProp&#39;)).$next(10)
+#
+# calling $next allow the association to start loading the 10 first instances
+#</code></pre>
+  </div>
+</div>
+<div class='tags'>
+  <h3>Parameters:</h3>
+  <ul class='param'>
+    <li>
+      <span class='name'>targetClass</span>
+      <span class='type'>
+        (
+          <tt><a href='../class/Resource.html'>Resource</a></tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>the class of the model retrieved </span>
+    </li>
+    <li>
+      <span class='name'>cb</span>
+      <span class='type'>
+        (
+          <tt>Function</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>a function to customise the reference to be used (default to <a href='../class/Resource.html#$ref-static'>Resource.$ref</a>) </span>
+    </li>
+  </ul>
+  <h3>Returns:</h3>
+  <ul class='return'>
+    <li>
+      <span class='type'></span>
+      (
+        <tt>Array</tt>
+      )
+      &mdash;
+      <span class='desc'>the collection itself, which is an extended Array of instances </span>
+    </li>
+  </ul>
+</div>
+  </div>
+</div>
+      <h2>Instance Method Details</h2>
+      <div class='methods'>
+  <div class='method_details'>
+    <p class='signature' id='$loaded-dynamic'>
+      #
+(promise)
+<b>$loaded</b><span>()</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>Override angularfire $loaded to load the includes of the association items</p>
+</div>
+<div class='tags'>
+  <h3>Returns:</h3>
+  <ul class='return'>
+    <li>
+      <span class='type'></span>
+      (
+        <tt>promise</tt>
+      )
+      &mdash;
+      <span class='desc'>a promise </span>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='$include-dynamic'>
+      #
+(this)
+<b>$include</b><span>(includes)</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>Set the includes asocciated with the association item</p>
+</div>
+<div class='tags'>
+  <h3>Parameters:</h3>
+  <ul class='param'>
+    <li>
+      <span class='name'>includes</span>
+      <span class='type'>
+        (
+          <tt>array, object, string</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>includes object </span>
+    </li>
+  </ul>
+  <h3>Returns:</h3>
+  <ul class='return'>
+    <li>
+      <span class='type'></span>
+      (
+        <tt>this</tt>
+      )
+      &mdash;
+      <span class='desc'>the association (to chain this method) </span>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='$next-dynamic'>
+      #
+(promise)
+<b>$next</b><span>(pageSize)</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>move the caret of a scrollable readonly ref</p>
+</div>
+<div class='tags'>
+  <h3>Parameters:</h3>
+  <ul class='param'>
+    <li>
+      <span class='name'>pageSize</span>
+      <span class='type'>
+        (
+          <tt>Number</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>number of items to load </span>
+    </li>
+  </ul>
+  <h3>Returns:</h3>
+  <ul class='return'>
+    <li>
+      <span class='type'></span>
+      (
+        <tt>promise</tt>
+      )
+      &mdash;
+      <span class='desc'>a promise </span>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='$prev-dynamic'>
+      #
+(promise)
+<b>$prev</b><span>(pageSize)</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>move the caret of a scrollable readonly ref</p>
+</div>
+<div class='tags'>
+  <h3>Parameters:</h3>
+  <ul class='param'>
+    <li>
+      <span class='name'>pageSize</span>
+      <span class='type'>
+        (
+          <tt>Number</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>number of items to load </span>
+    </li>
+  </ul>
+  <h3>Returns:</h3>
+  <ul class='return'>
+    <li>
+      <span class='type'></span>
+      (
+        <tt>promise</tt>
+      )
+      &mdash;
+      <span class='desc'>a promise </span>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='$$init-dynamic'>
+      #
+(void)
+<b>$$init</b><span>(baseRef, cb)</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>initialise a <a href='../class/Collection.html'>Collection</a> calling $firebaseArray constructor on a firebase reference which defaults to the passed reference</p>
+</div>
+<div class='tags'>
+  <h3>Parameters:</h3>
+  <ul class='param'>
+    <li>
+      <span class='name'>baseRef</span>
+      <span class='type'>
+        (
+          <tt>Reference</tt>
+        )
+      </span>
+    </li>
+    <li>
+      <span class='name'>callback</span>
+      <span class='type'>
+        (
+          <tt>Function</tt>
+        )
+      </span>
+      &mdash;
+      <span class='desc'>function taking as parameter the baseRef and an initialization callback function which have to be called within it </span>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='$$added-dynamic'>
+      #
+(resource)
+<b>$$added</b><span>(snap)</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>Angularfire hook overrided to retreiece the targetted class instances based</p>
+</div>
+<div class='tags'>
+  <h3>Returns:</h3>
+  <ul class='return'>
+    <li>
+      <span class='type'></span>
+      (
+        <tt>resource</tt>
+      )
+      &mdash;
+      <span class='desc'>Resource instance </span>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='$$updated-dynamic'>
+      #
+(void)
+<b>$$updated</b><span>(snap)</span>
+      <br>
+    </p>
+    <div class='docstring'>
+  <p>Angularfire hook overrided to prevent collision between instances and foreign key updates
+Disable foreign key update while instances updates are handled on their own</p>
+</div>
+<div class='tags'>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='$getRecord-dynamic'>
+      #
+(Resource)
+<b>$getRecord</b><span>(key)</span>
+      <br>
+    </p>
+    <div class='tags'>
+  <h3>Returns:</h3>
+  <ul class='return'>
+    <li>
+      <span class='type'></span>
+      (
+        <tt><a href='../class/Resource.html'>Resource</a></tt>
+      )
+      &mdash;
+      <span class='desc'>instance </span>
+    </li>
+  </ul>
+  <h3>See also:</h3>
+  <ul class='see'>
+    <li>
+      <a href='https://www.firebase.com/docs/web/libraries/angular/api.html'>https:&#47;&#47;www.firebase.com&#47;docs&#47;web&#47;libraries&#47;angular&#47;api.html</a>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='$keyAt-dynamic'>
+      #
+(String)
+<b>$keyAt</b><span>(instance)</span>
+      <br>
+    </p>
+    <div class='tags'>
+  <h3>Returns:</h3>
+  <ul class='return'>
+    <li>
+      <span class='type'></span>
+      (
+        <tt>String</tt>
+      )
+      &mdash;
+      <span class='desc'>resource key </span>
+    </li>
+  </ul>
+  <h3>See also:</h3>
+  <ul class='see'>
+    <li>
+      <a href='https://www.firebase.com/docs/web/libraries/angular/api.html'>https:&#47;&#47;www.firebase.com&#47;docs&#47;web&#47;libraries&#47;angular&#47;api.html</a>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='$indexFor-dynamic'>
+      #
+(integer)
+<b>$indexFor</b><span>(key)</span>
+      <br>
+    </p>
+    <div class='tags'>
+  <h3>Returns:</h3>
+  <ul class='return'>
+    <li>
+      <span class='type'></span>
+      (
+        <tt>integer</tt>
+      )
+      &mdash;
+      <span class='desc'>index </span>
+    </li>
+  </ul>
+  <h3>See also:</h3>
+  <ul class='see'>
+    <li>
+      <a href='https://www.firebase.com/docs/web/libraries/angular/api.html'>https:&#47;&#47;www.firebase.com&#47;docs&#47;web&#47;libraries&#47;angular&#47;api.html</a>
+    </li>
+  </ul>
+</div>
+  </div>
+  <div class='method_details'>
+    <p class='signature' id='$watch-dynamic'>
+      #
+(void)
+<b>$watch</b><span>(cb, {context})</span>
+      <br>
+    </p>
+    <div class='tags'>
+  <h3>See also:</h3>
+  <ul class='see'>
+    <li>
+      <a href='https://www.firebase.com/docs/web/libraries/angular/api.html'>https:&#47;&#47;www.firebase.com&#47;docs&#47;web&#47;libraries&#47;angular&#47;api.html</a>
+    </li>
+  </ul>
+</div>
+  </div>
+</div>
+    </div>
+    <div id='footer'>
+  September 06, 15 19:36:29 by
+  <a href='https://github.com/coffeedoc/codo' title='CoffeeScript API documentation generator'>
+    Codo
+  </a>
+  2.0.10
+  &#10034;
+  Press H to see the keyboard shortcuts
+  &#10034;
+  <a href='http://twitter.com/netzpirat' target='_parent'>@netzpirat</a>
+  &#10034;
+  <a href='http://twitter.com/_inossidabile' target='_parent'>@_inossidabile</a>
+</div>
+<iframe id='search_frame'></iframe>
+<div id='fuzzySearch'>
+  <input type='text'>
+  <ol></ol>
+</div>
+<div id='help'>
+  <p>
+    Quickly fuzzy find classes, mixins, methods, file:
+  </p>
+  <ul>
+    <li>
+      <span>T</span>
+      Open fuzzy finder dialog
+    </li>
+  </ul>
+  <p>
+    Control the navigation frame:
+  </p>
+  <ul>
+    <li>
+      <span>L</span>
+      Toggle list view
+    </li>
+    <li>
+      <span>C</span>
+      Show class list
+    </li>
+    <li>
+      <span>I</span>
+      Show mixin list
+    </li>
+    <li>
+      <span>F</span>
+      Show file list
+    </li>
+    <li>
+      <span>M</span>
+      Show method list
+    </li>
+    <li>
+      <span>E</span>
+      Show extras list
+    </li>
+  </ul>
+  <p>
+    You can focus and blur the search input:
+  </p>
+  <ul>
+    <li>
+      <span>S</span>
+      Focus search input
+    </li>
+    <li>
+      <span>Esc</span>
+      Blur search input
+    </li>
+  </ul>
+</div>
+  </body>
+</html>
