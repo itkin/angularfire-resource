@@ -507,7 +507,12 @@ angular.module('angularfire-resource').factory('FireResource', [
           if (data == null) {
             data = {};
           }
-          instance = new this(this.$ref().push());
+          if (data.id != null) {
+            instance = new this(this.$ref().child(data.id));
+            delete data.id;
+          } else {
+            instance = new this(this.$ref().push());
+          }
           instance.$$isNew = true;
           angular.extend(instance, data);
           return instance;
