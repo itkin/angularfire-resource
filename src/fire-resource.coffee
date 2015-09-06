@@ -99,11 +99,18 @@ angular.module('angularfire-resource')
         # Resource instance builder
         # @param data {Object} the instance attributes
         # @return {Resource} instance
-        #
-        # NB: New resource instance cannot instanciate any {AssociationCollection}
-        #
+        # @option data {String, Number} id Optional id of the instance, should be unique, defaults to {Resource.$ref}().push()
+        # @note New resource instance cannot instanciate any {AssociationCollection} until they are saved or added to an {AsscoationCollection}
+        # @example
+        #   user = User.$new email: 'myEmail'
+        # @example
+        #   user = User.$new id: "myId", email: 'myEmail'
         @$new: (data={}) ->
-          instance = new this(@$ref().push())
+          if data.id?
+            instance = new this(@$ref().child(data.id))
+            delete data.id
+          else
+            instance = new this(@$ref().push())
           instance.$$isNew = true
           angular.extend instance, data
           instance
