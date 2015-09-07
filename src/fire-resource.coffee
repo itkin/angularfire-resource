@@ -232,22 +232,23 @@ angular.module('angularfire-resource')
         $save: ->
           args = arguments
           isNew = @$isNew()
+          self = this
           $firebaseUtils.resolve()
-          .then =>
-            @$$runCallbacks('beforeCreate') if isNew
-          .then =>
-            @$$runCallbacks('beforeSave')
-          .then =>
-            @createdAt = Firebase.ServerValue.TIMESTAMP if isNew
-            @updatedAt = Firebase.ServerValue.TIMESTAMP
-          .then =>
-            $firebaseObject::$save.apply(this, args)
-          .then =>
-            @$$runCallbacks('afterCreate') if isNew
-          .then =>
-            @$$runCallbacks('afterSave')
-          .then =>
-            this
+          .then ->
+            self.$$runCallbacks('beforeCreate') if isNew
+          .then ->
+            self.$$runCallbacks('beforeSave')
+          .then ->
+            self.createdAt = Firebase.ServerValue.TIMESTAMP if isNew
+            self.updatedAt = Firebase.ServerValue.TIMESTAMP
+          .then ->
+            $firebaseObject::$save.apply(self, args)
+          .then ->
+            self.$$runCallbacks('afterCreate') if isNew
+          .then ->
+            self.$$runCallbacks('afterSave')
+          .then ->
+            self
 
 
         # Set the include association attached to the instance
@@ -325,9 +326,14 @@ angular.module('angularfire-resource')
         # @return {Promise} promise
         $$runCallbacks: (name) ->
           promise = $firebaseUtils.resolve()
+          self = this
           for cb in @constructor['_' + name]
             cb = @[cb] if angular.isString(cb)
-            promise = promise.then => cb.call(this)
+            ((cb) ->
+              promise = promise.then ->
+                cb.apply(self, [self])
+            )(cb)
+
           promise
 
   #      $$notify: ->

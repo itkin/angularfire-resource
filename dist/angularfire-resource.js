@@ -598,45 +598,32 @@ angular.module('angularfire-resource').factory('FireResource', [
         };
 
         Resource.prototype.$save = function() {
-          var args, isNew;
+          var args, isNew, self;
           args = arguments;
           isNew = this.$isNew();
-          return $firebaseUtils.resolve().then((function(_this) {
-            return function() {
-              if (isNew) {
-                return _this.$$runCallbacks('beforeCreate');
-              }
-            };
-          })(this)).then((function(_this) {
-            return function() {
-              return _this.$$runCallbacks('beforeSave');
-            };
-          })(this)).then((function(_this) {
-            return function() {
-              if (isNew) {
-                _this.createdAt = Firebase.ServerValue.TIMESTAMP;
-              }
-              return _this.updatedAt = Firebase.ServerValue.TIMESTAMP;
-            };
-          })(this)).then((function(_this) {
-            return function() {
-              return $firebaseObject.prototype.$save.apply(_this, args);
-            };
-          })(this)).then((function(_this) {
-            return function() {
-              if (isNew) {
-                return _this.$$runCallbacks('afterCreate');
-              }
-            };
-          })(this)).then((function(_this) {
-            return function() {
-              return _this.$$runCallbacks('afterSave');
-            };
-          })(this)).then((function(_this) {
-            return function() {
-              return _this;
-            };
-          })(this));
+          self = this;
+          return $firebaseUtils.resolve().then(function() {
+            if (isNew) {
+              return self.$$runCallbacks('beforeCreate');
+            }
+          }).then(function() {
+            return self.$$runCallbacks('beforeSave');
+          }).then(function() {
+            if (isNew) {
+              self.createdAt = Firebase.ServerValue.TIMESTAMP;
+            }
+            return self.updatedAt = Firebase.ServerValue.TIMESTAMP;
+          }).then(function() {
+            return $firebaseObject.prototype.$save.apply(self, args);
+          }).then(function() {
+            if (isNew) {
+              return self.$$runCallbacks('afterCreate');
+            }
+          }).then(function() {
+            return self.$$runCallbacks('afterSave');
+          }).then(function() {
+            return self;
+          });
         };
 
         Resource.prototype.$include = function(includes) {
@@ -714,19 +701,21 @@ angular.module('angularfire-resource').factory('FireResource', [
         };
 
         Resource.prototype.$$runCallbacks = function(name) {
-          var cb, j, len1, promise, ref2;
+          var cb, fn1, j, len1, promise, ref2, self;
           promise = $firebaseUtils.resolve();
+          self = this;
           ref2 = this.constructor['_' + name];
+          fn1 = function(cb) {
+            return promise = promise.then(function() {
+              return cb.apply(self, [self]);
+            });
+          };
           for (j = 0, len1 = ref2.length; j < len1; j++) {
             cb = ref2[j];
             if (angular.isString(cb)) {
               cb = this[cb];
             }
-            promise = promise.then((function(_this) {
-              return function() {
-                return cb.call(_this);
-              };
-            })(this));
+            fn1(cb);
           }
           return promise;
         };
